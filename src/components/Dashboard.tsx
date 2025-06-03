@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { indexedDBService } from '../services/IndexedDBService';
 import { User, Transaction } from '../types/User';
-import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon } from 'lucide-react';
+import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3 } from 'lucide-react';
 import SavingsGoals from './SavingsGoals';
 import Profile from './Profile';
+import Markets from './Markets';
 
 interface DashboardProps {
   user: User;
@@ -18,7 +18,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [type, setType] = useState<'Ingreso' | 'Gasto'>('Ingreso');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'transactions' | 'savings' | 'profile'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'savings' | 'markets' | 'profile'>('transactions');
 
   useEffect(() => {
     loadTransactions();
@@ -171,10 +171,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           </button>
           <button
+            onClick={() => setActiveTab('markets')}
+            className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
+              activeTab === 'markets'
+                ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white'
+                : 'text-gray-600 hover:bg-white/50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Mercados
+            </div>
+          </button>
+          <button
             onClick={() => setActiveTab('profile')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
               activeTab === 'profile'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
                 : 'text-gray-600 hover:bg-white/50'
             }`}
           >
@@ -320,6 +333,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </>
       ) : activeTab === 'savings' ? (
         <SavingsGoals userId={user.id} />
+      ) : activeTab === 'markets' ? (
+        <Markets />
       ) : (
         <Profile user={user} onLogout={onLogout} />
       )}
