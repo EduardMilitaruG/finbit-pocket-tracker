@@ -34,15 +34,26 @@ const Index = () => {
   const switchToLogin = () => setCurrentView('login');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="container mx-auto px-4 py-8">
+    <div 
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        backgroundImage: `url('/lovable-uploads/38c5741a-b15a-4fdc-9613-a1c6dbe8397d.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px]"></div>
+      
+      <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            <span className="text-blue-600">Fin</span>
-            <span className="text-green-600">Bit</span>
+          <h1 className="text-5xl font-light text-white mb-2 drop-shadow-lg">
+            <span className="font-extralight">Fin</span>
+            <span className="font-normal">Bit</span>
           </h1>
-          <p className="text-gray-600">Gestión Personal de Finanzas - PFC MVP</p>
+          <p className="text-white/90 text-lg font-light drop-shadow-md">Gestión Personal de Finanzas - PFC MVP</p>
         </div>
 
         {/* Main Content */}
