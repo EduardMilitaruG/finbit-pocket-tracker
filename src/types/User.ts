@@ -13,3 +13,14 @@ export interface Transaction {
   type: 'Ingreso' | 'Gasto';
   date: number;
 }
+
+export interface SavingsGoal {
+  id: number;
+  userId: number;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  description?: string;
+  deadline?: number;
+  createdAt: number;
+}
