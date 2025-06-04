@@ -1,3 +1,4 @@
+
 import { User, Transaction, SavingsGoal } from '../types/User';
 
 class IndexedDBService {
@@ -7,41 +8,38 @@ class IndexedDBService {
 
   async initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
+      const req = indexedDB.open(this.dbName, this.version);
 
-      request.onerror = () => {
-        console.error('Error opening IndexedDB:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error opening IndexedDB:', req.error);
+        reject(req.error);
       };
 
-      request.onsuccess = () => {
-        this.db = request.result;
+      req.onsuccess = () => {
+        this.db = req.result;
         console.log('IndexedDB initialized successfully');
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      req.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create usuarios store
         if (!db.objectStoreNames.contains('usuarios')) {
-          const usuariosStore = db.createObjectStore('usuarios', { 
+          const usersStore = db.createObjectStore('usuarios', { 
             keyPath: 'id', 
             autoIncrement: true 
           });
-          usuariosStore.createIndex('username', 'username', { unique: true });
+          usersStore.createIndex('username', 'username', { unique: true });
         }
 
-        // Create movimientos store
         if (!db.objectStoreNames.contains('movimientos')) {
-          const movimientosStore = db.createObjectStore('movimientos', { 
+          const movStore = db.createObjectStore('movimientos', { 
             keyPath: 'id', 
             autoIncrement: true 
           });
-          movimientosStore.createIndex('userId', 'userId', { unique: false });
+          movStore.createIndex('userId', 'userId', { unique: false });
         }
 
-        // Create savings goals store
         if (!db.objectStoreNames.contains('savingsGoals')) {
           const savingsStore = db.createObjectStore('savingsGoals', { 
             keyPath: 'id', 
@@ -57,21 +55,21 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['usuarios'], 'readwrite');
-      const store = transaction.objectStore('usuarios');
+      const trans = this.db!.transaction(['usuarios'], 'readwrite');
+      const store = trans.objectStore('usuarios');
       
-      const user = { username, password };
-      const request = store.add(user);
+      const userData = { username, password };
+      const req = store.add(userData);
 
-      request.onsuccess = () => {
-        const newUser = { ...user, id: request.result as number };
+      req.onsuccess = () => {
+        const newUser = { ...userData, id: req.result as number };
         console.log('User added successfully:', newUser);
         resolve(newUser);
       };
 
-      request.onerror = () => {
-        console.error('Error adding user:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error adding user:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -80,26 +78,26 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['usuarios'], 'readonly');
-      const store = transaction.objectStore('usuarios');
+      const trans = this.db!.transaction(['usuarios'], 'readonly');
+      const store = trans.objectStore('usuarios');
       const index = store.index('username');
       
-      const request = index.get(username);
+      const req = index.get(username);
 
-      request.onsuccess = () => {
-        const user = request.result;
-        if (user && user.password === password) {
-          console.log('User found and authenticated:', user);
-          resolve(user);
+      req.onsuccess = () => {
+        const userData = req.result;
+        if (userData && userData.password === password) {
+          console.log('User found and authenticated:', userData);
+          resolve(userData);
         } else {
           console.log('Invalid credentials');
           resolve(null);
         }
       };
 
-      request.onerror = () => {
-        console.error('Error getting user:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error getting user:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -108,10 +106,10 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['movimientos'], 'readwrite');
-      const store = transaction.objectStore('movimientos');
+      const trans = this.db!.transaction(['movimientos'], 'readwrite');
+      const store = trans.objectStore('movimientos');
       
-      const movimiento = {
+      const mov = {
         userId,
         description,
         amount,
@@ -119,17 +117,17 @@ class IndexedDBService {
         date: Date.now()
       };
       
-      const request = store.add(movimiento);
+      const req = store.add(mov);
 
-      request.onsuccess = () => {
-        const newTransaction = { ...movimiento, id: request.result as number };
-        console.log('Transaction added successfully:', newTransaction);
-        resolve(newTransaction);
+      req.onsuccess = () => {
+        const newTrans = { ...mov, id: req.result as number };
+        console.log('Transaction added successfully:', newTrans);
+        resolve(newTrans);
       };
 
-      request.onerror = () => {
-        console.error('Error adding transaction:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error adding transaction:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -138,21 +136,21 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['movimientos'], 'readonly');
-      const store = transaction.objectStore('movimientos');
+      const trans = this.db!.transaction(['movimientos'], 'readonly');
+      const store = trans.objectStore('movimientos');
       const index = store.index('userId');
       
-      const request = index.getAll(userId);
+      const req = index.getAll(userId);
 
-      request.onsuccess = () => {
-        const transactions = request.result || [];
+      req.onsuccess = () => {
+        const transactions = req.result || [];
         console.log('Transactions retrieved:', transactions);
         resolve(transactions);
       };
 
-      request.onerror = () => {
-        console.error('Error getting transactions:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error getting transactions:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -161,8 +159,8 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['savingsGoals'], 'readwrite');
-      const store = transaction.objectStore('savingsGoals');
+      const trans = this.db!.transaction(['savingsGoals'], 'readwrite');
+      const store = trans.objectStore('savingsGoals');
       
       const goal = {
         userId,
@@ -174,17 +172,17 @@ class IndexedDBService {
         createdAt: Date.now()
       };
       
-      const request = store.add(goal);
+      const req = store.add(goal);
 
-      request.onsuccess = () => {
-        const newGoal = { ...goal, id: request.result as number };
+      req.onsuccess = () => {
+        const newGoal = { ...goal, id: req.result as number };
         console.log('Savings goal added successfully:', newGoal);
         resolve(newGoal);
       };
 
-      request.onerror = () => {
-        console.error('Error adding savings goal:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error adding savings goal:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -193,21 +191,21 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['savingsGoals'], 'readonly');
-      const store = transaction.objectStore('savingsGoals');
+      const trans = this.db!.transaction(['savingsGoals'], 'readonly');
+      const store = trans.objectStore('savingsGoals');
       const index = store.index('userId');
       
-      const request = index.getAll(userId);
+      const req = index.getAll(userId);
 
-      request.onsuccess = () => {
-        const goals = request.result || [];
+      req.onsuccess = () => {
+        const goals = req.result || [];
         console.log('Savings goals retrieved:', goals);
         resolve(goals);
       };
 
-      request.onerror = () => {
-        console.error('Error getting savings goals:', request.error);
-        reject(request.error);
+      req.onerror = () => {
+        console.error('Error getting savings goals:', req.error);
+        reject(req.error);
       };
     });
   }
@@ -216,34 +214,34 @@ class IndexedDBService {
     if (!this.db) await this.initDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['savingsGoals'], 'readwrite');
-      const store = transaction.objectStore('savingsGoals');
+      const trans = this.db!.transaction(['savingsGoals'], 'readwrite');
+      const store = trans.objectStore('savingsGoals');
       
-      const getRequest = store.get(goalId);
+      const getReq = store.get(goalId);
       
-      getRequest.onsuccess = () => {
-        const goal = getRequest.result;
+      getReq.onsuccess = () => {
+        const goal = getReq.result;
         if (goal) {
           goal.currentAmount = newAmount;
-          const updateRequest = store.put(goal);
+          const updateReq = store.put(goal);
           
-          updateRequest.onsuccess = () => {
+          updateReq.onsuccess = () => {
             console.log('Savings goal updated successfully');
             resolve();
           };
           
-          updateRequest.onerror = () => {
-            console.error('Error updating savings goal:', updateRequest.error);
-            reject(updateRequest.error);
+          updateReq.onerror = () => {
+            console.error('Error updating savings goal:', updateReq.error);
+            reject(updateReq.error);
           };
         } else {
           reject(new Error('Savings goal not found'));
         }
       };
 
-      getRequest.onerror = () => {
-        console.error('Error getting savings goal:', getRequest.error);
-        reject(getRequest.error);
+      getReq.onerror = () => {
+        console.error('Error getting savings goal:', getReq.error);
+        reject(getReq.error);
       };
     });
   }

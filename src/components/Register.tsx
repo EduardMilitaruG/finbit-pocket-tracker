@@ -10,38 +10,38 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [pass2, setPass2] = useState('');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
+    setLoading(true);
+    setMsg('');
 
-    if (password !== confirmPassword) {
-      setMessage('Las contraseñas no coinciden');
-      setIsLoading(false);
+    if (pass !== pass2) {
+      setMsg('Las contraseñas no coinciden');
+      setLoading(false);
       return;
     }
 
-    if (password.length < 3) {
-      setMessage('La contraseña debe tener al menos 3 caracteres');
-      setIsLoading(false);
+    if (pass.length < 3) {
+      setMsg('La contraseña debe tener al menos 3 caracteres');
+      setLoading(false);
       return;
     }
 
     try {
-      const user = await indexedDBService.addUser(username, password);
-      setMessage('¡Usuario registrado exitosamente!');
-      setTimeout(() => onRegister(user), 1000);
+      const newUser = await indexedDBService.addUser(user, pass);
+      setMsg('¡Usuario registrado exitosamente!');
+      setTimeout(() => onRegister(newUser), 1000);
     } catch (error) {
       console.error('Registration error:', error);
-      setMessage('Error al registrar usuario. El nombre de usuario puede estar en uso.');
+      setMsg('Error al registrar usuario. El nombre de usuario puede estar en uso.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -55,7 +55,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
         <p className="text-gray-600 font-light">Crea tu cuenta</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleRegister} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Usuario
@@ -64,8 +64,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
             <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="Elige un nombre de usuario"
               required
@@ -79,8 +79,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Crea una contraseña"
             required
@@ -93,8 +93,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={pass2}
+            onChange={(e) => setPass2(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Confirma tu contraseña"
             required
@@ -103,20 +103,20 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={loading}
           className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white py-4 px-6 rounded-2xl hover:from-teal-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          {isLoading ? 'Registrando...' : 'Registrarse'}
+          {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
 
-      {message && (
+      {msg && (
         <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-          message.includes('exitosamente') 
+          msg.includes('exitosamente') 
             ? 'bg-green-100/80 text-green-700 border border-green-200' 
             : 'bg-red-100/80 text-red-700 border border-red-200'
         }`}>
-          {message}
+          {msg}
         </div>
       )}
 

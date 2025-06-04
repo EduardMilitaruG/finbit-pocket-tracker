@@ -10,29 +10,29 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
+    setLoading(true);
+    setMsg('');
 
     try {
-      const user = await indexedDBService.getUser(username, password);
-      if (user) {
-        setMessage('¡Login exitoso!');
-        onLogin(user);
+      const userData = await indexedDBService.getUser(user, pass);
+      if (userData) {
+        setMsg('¡Login exitoso!');
+        onLogin(userData);
       } else {
-        setMessage('Usuario o contraseña incorrectos');
+        setMsg('Usuario o contraseña incorrectos');
       }
     } catch (error) {
       console.error('Login error:', error);
-      setMessage('Error al iniciar sesión');
+      setMsg('Error al iniciar sesión');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
         <p className="text-gray-600 font-light">Accede a tu cuenta</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleLogin} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Usuario
@@ -55,8 +55,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
             <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="Ingresa tu usuario"
               required
@@ -70,8 +70,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
           </label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Ingresa tu contraseña"
             required
@@ -80,20 +80,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={loading}
           className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-4 px-6 rounded-2xl hover:from-blue-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
         </button>
       </form>
 
-      {message && (
+      {msg && (
         <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-          message.includes('exitoso') 
+          msg.includes('exitoso') 
             ? 'bg-green-100/80 text-green-700 border border-green-200' 
             : 'bg-red-100/80 text-red-700 border border-red-200'
         }`}>
-          {message}
+          {msg}
         </div>
       )}
 
