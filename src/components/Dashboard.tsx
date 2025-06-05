@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { indexedDBService } from '../services/IndexedDBService';
 import { User, Transaction } from '../types/User';
@@ -12,74 +13,73 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<'Ingreso' | 'Gasto'>('Ingreso');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'transactions' | 'savings' | 'markets' | 'profile'>('transactions');
+  const [transacciones, setTransacciones] = useState<Transaction[]>([]);
+  const [descripcion, setDescripcion] = useState('');
+  const [cantidad, setCantidad] = useState('');
+  const [tipo, setTipo] = useState<'Ingreso' | 'Gasto'>('Ingreso');
+  const [mensaje, setMensaje] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [pestanaActiva, setPestanaActiva] = useState<'transacciones' | 'ahorros' | 'mercados' | 'perfil'>('transacciones');
 
   useEffect(() => {
-    loadTransactions();
+    cargarTransacciones();
   }, [user.id]);
 
-  const loadTransactions = async () => {
+  const cargarTransacciones = async () => {
     try {
-      const userTransactions = await indexedDBService.getTransactionsByUserId(user.id);
-      setTransactions(userTransactions);
+      const transaccionesUsuario = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      setTransacciones(transaccionesUsuario);
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      console.error('Error cargando transacciones:', error);
     }
   };
 
-  const handleAddTransaction = async (e: React.FormEvent) => {
+  const manejarAgregarTransaccion = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
+    setCargando(true);
+    setMensaje('');
 
     try {
-      await indexedDBService.addTransaction(user.id, description, parseFloat(amount), type);
-      setMessage('¡Transacción agregada exitosamente!');
-      setDescription('');
-      setAmount('');
-      setType('Ingreso');
-      await loadTransactions();
+      await indexedDBService.agregarTransaccion(user.id, descripcion, parseFloat(cantidad), tipo);
+      setMensaje('¡Transacción agregada exitosamente!');
+      setDescripcion('');
+      setCantidad('');
+      setTipo('Ingreso');
+      await cargarTransacciones();
     } catch (error) {
-      console.error('Error adding transaction:', error);
-      setMessage('Error al agregar transacción');
+      console.error('Error agregando transacción:', error);
+      setMensaje('Error al agregar transacción');
     } finally {
-      setIsLoading(false);
+      setCargando(false);
     }
   };
 
-  const calculateBalance = () => {
-    return transactions.reduce((balance, transaction) => {
-      return transaction.type === 'Ingreso' 
-        ? balance + transaction.amount 
-        : balance - transaction.amount;
+  const calcularBalance = () => {
+    return transacciones.reduce((balance, transaccion) => {
+      return transaccion.type === 'Ingreso' 
+        ? balance + transaccion.amount 
+        : balance - transaccion.amount;
     }, 0);
   };
 
-  const getTotalIngresos = () => {
-    return transactions
+  const obtenerTotalIngresos = () => {
+    return transacciones
       .filter(t => t.type === 'Ingreso')
       .reduce((total, t) => total + t.amount, 0);
   };
 
-  const getTotalGastos = () => {
-    return transactions
+  const obtenerTotalGastos = () => {
+    return transacciones
       .filter(t => t.type === 'Gasto')
       .reduce((total, t) => total + t.amount, 0);
   };
 
-  const balance = calculateBalance();
-  const totalIngresos = getTotalIngresos();
-  const totalGastos = getTotalGastos();
+  const balance = calcularBalance();
+  const totalIngresos = obtenerTotalIngresos();
+  const totalGastos = obtenerTotalGastos();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <div className="flex justify-between items-center">
           <div>
@@ -98,7 +98,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
           <div className="flex items-center justify-between">
@@ -141,13 +140,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
         <div className="flex">
           <button
-            onClick={() => setActiveTab('transactions')}
+            onClick={() => setPestanaActiva('transacciones')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
-              activeTab === 'transactions'
+              pestanaActiva === 'transacciones'
                 ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white'
                 : 'text-gray-600 hover:bg-white/50'
             }`}
@@ -158,9 +156,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('savings')}
+            onClick={() => setPestanaActiva('ahorros')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
-              activeTab === 'savings'
+              pestanaActiva === 'ahorros'
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
                 : 'text-gray-600 hover:bg-white/50'
             }`}
@@ -171,9 +169,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('markets')}
+            onClick={() => setPestanaActiva('mercados')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
-              activeTab === 'markets'
+              pestanaActiva === 'mercados'
                 ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white'
                 : 'text-gray-600 hover:bg-white/50'
             }`}
@@ -184,9 +182,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => setPestanaActiva('perfil')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
-              activeTab === 'profile'
+              pestanaActiva === 'perfil'
                 ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
                 : 'text-gray-600 hover:bg-white/50'
             }`}
@@ -199,10 +197,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'transactions' ? (
+      {pestanaActiva === 'transacciones' ? (
         <>
-          {/* Add Transaction Form */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
             <h3 className="text-2xl font-light text-gray-800 mb-6 flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-teal-500 rounded-full flex items-center justify-center">
@@ -211,7 +207,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               Agregar Transacción
             </h3>
             
-            <form onSubmit={handleAddTransaction} className="space-y-6">
+            <form onSubmit={manejarAgregarTransaccion} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -219,8 +215,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   </label>
                   <input
                     type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
                     className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                     placeholder="Ej: Salario, Compra supermercado..."
                     required
@@ -234,8 +230,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <input
                     type="number"
                     step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    value={cantidad}
+                    onChange={(e) => setCantidad(e.target.value)}
                     className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                     placeholder="0.00"
                     required
@@ -247,8 +243,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     Tipo
                   </label>
                   <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as 'Ingreso' | 'Gasto')}
+                    value={tipo}
+                    onChange={(e) => setTipo(e.target.value as 'Ingreso' | 'Gasto')}
                     className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                   >
                     <option value="Ingreso">Ingreso</option>
@@ -259,31 +255,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={cargando}
                 className="w-full md:w-auto bg-gradient-to-r from-blue-500 to-teal-500 text-white px-8 py-4 rounded-2xl hover:from-blue-600 hover:to-teal-600 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                {isLoading ? 'Agregando...' : 'Agregar Transacción'}
+                {cargando ? 'Agregando...' : 'Agregar Transacción'}
               </button>
             </form>
 
-            {message && (
+            {mensaje && (
               <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-                message.includes('exitosamente') 
+                mensaje.includes('exitosamente') 
                   ? 'bg-green-100/80 text-green-700 border border-green-200' 
                   : 'bg-red-100/80 text-red-700 border border-red-200'
               }`}>
-                {message}
+                {mensaje}
               </div>
             )}
           </div>
 
-          {/* Transactions List */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
             <h3 className="text-2xl font-light text-gray-800 mb-6">
-              Historial de Transacciones <span className="text-lg text-gray-500">({transactions.length})</span>
+              Historial de Transacciones <span className="text-lg text-gray-500">({transacciones.length})</span>
             </h3>
             
-            {transactions.length === 0 ? (
+            {transacciones.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg font-light">
                   No hay transacciones registradas. ¡Agrega tu primera transacción!
@@ -301,27 +296,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions
+                    {transacciones
                       .sort((a, b) => b.date - a.date)
-                      .map((transaction) => (
-                        <tr key={transaction.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
+                      .map((transaccion) => (
+                        <tr key={transaccion.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
                           <td className="py-4 px-4 text-sm text-gray-600 font-light">
-                            {new Date(transaction.date).toLocaleDateString('es-ES')}
+                            {new Date(transaccion.date).toLocaleDateString('es-ES')}
                           </td>
-                          <td className="py-4 px-4 text-sm font-light">{transaction.description}</td>
+                          <td className="py-4 px-4 text-sm font-light">{transaccion.description}</td>
                           <td className="py-4 px-4 text-sm">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              transaction.type === 'Ingreso' 
+                              transaccion.type === 'Ingreso' 
                                 ? 'bg-green-100/80 text-green-700 border border-green-200' 
                                 : 'bg-red-100/80 text-red-700 border border-red-200'
                             }`}>
-                              {transaction.type}
+                              {transaccion.type}
                             </span>
                           </td>
                           <td className={`py-4 px-4 text-sm text-right font-medium ${
-                            transaction.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'
+                            transaccion.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {transaction.type === 'Ingreso' ? '+' : '-'}€{transaction.amount.toFixed(2)}
+                            {transaccion.type === 'Ingreso' ? '+' : '-'}€{transaccion.amount.toFixed(2)}
                           </td>
                         </tr>
                       ))}
@@ -331,9 +326,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             )}
           </div>
         </>
-      ) : activeTab === 'savings' ? (
+      ) : pestanaActiva === 'ahorros' ? (
         <SavingsGoals userId={user.id} />
-      ) : activeTab === 'markets' ? (
+      ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (
         <Profile user={user} onLogout={onLogout} />

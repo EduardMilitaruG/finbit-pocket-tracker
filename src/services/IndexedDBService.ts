@@ -1,250 +1,214 @@
 
-import { User, Transaction, SavingsGoal } from '../types/User';
+class ServicioIndexedDB {
+  private nombreBD = 'FinBitDB';
+  private version = 1;
+  private bd: IDBDatabase | null = null;
 
-class IndexedDBService {
-  private dbName = 'FinBitDB';
-  private version = 2;
-  private db: IDBDatabase | null = null;
+  async inicializar(): Promise<void> {
+    return new Promise((resolver, rechazar) => {
+      const solicitud = indexedDB.open(this.nombreBD, this.version);
 
-  async initDB(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(this.dbName, this.version);
-
-      req.onerror = () => {
-        console.error('Error opening IndexedDB:', req.error);
-        reject(req.error);
+      solicitud.onerror = () => rechazar(solicitud.error);
+      solicitud.onsuccess = () => {
+        this.bd = solicitud.result;
+        resolver();
       };
 
-      req.onsuccess = () => {
-        this.db = req.result;
-        console.log('IndexedDB initialized successfully');
-        resolve();
-      };
+      solicitud.onupgradeneeded = (evento) => {
+        const bd = (evento.target as IDBOpenDBRequest).result;
 
-      req.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        if (!db.objectStoreNames.contains('usuarios')) {
-          const usersStore = db.createObjectStore('usuarios', { 
-            keyPath: 'id', 
-            autoIncrement: true 
-          });
-          usersStore.createIndex('username', 'username', { unique: true });
+        if (!bd.objectStoreNames.contains('usuarios')) {
+          const almacenUsuarios = bd.createObjectStore('usuarios', { keyPath: 'id', autoIncrement: true });
+          almacenUsuarios.createIndex('nombreUsuario', 'nombreUsuario', { unique: true });
         }
 
-        if (!db.objectStoreNames.contains('movimientos')) {
-          const movStore = db.createObjectStore('movimientos', { 
-            keyPath: 'id', 
-            autoIncrement: true 
-          });
-          movStore.createIndex('userId', 'userId', { unique: false });
+        if (!bd.objectStoreNames.contains('transacciones')) {
+          const almacenTransacciones = bd.createObjectStore('transacciones', { keyPath: 'id', autoIncrement: true });
+          almacenTransacciones.createIndex('idUsuario', 'idUsuario', { unique: false });
         }
 
-        if (!db.objectStoreNames.contains('savingsGoals')) {
-          const savingsStore = db.createObjectStore('savingsGoals', { 
-            keyPath: 'id', 
-            autoIncrement: true 
-          });
-          savingsStore.createIndex('userId', 'userId', { unique: false });
+        if (!bd.objectStoreNames.contains('objetivosAhorro')) {
+          const almacenObjetivos = bd.createObjectStore('objetivosAhorro', { keyPath: 'id', autoIncrement: true });
+          almacenObjetivos.createIndex('idUsuario', 'idUsuario', { unique: false });
         }
       };
     });
   }
 
-  async addUser(username: string, password: string): Promise<User> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['usuarios'], 'readwrite');
-      const store = trans.objectStore('usuarios');
+  private async asegurarBD(): Promise<IDBDatabase> {
+    if (!this.bd) {
+      await this.inicializar();
+    }
+    return this.bd!;
+  }
+
+  async agregarUsuario(nombreUsuario: string, contrasena: string): Promise<any> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['usuarios'], 'readwrite');
+      const almacen = transaccion.objectStore('usuarios');
       
-      const userData = { username, password };
-      const req = store.add(userData);
-
-      req.onsuccess = () => {
-        const newUser = { ...userData, id: req.result as number };
-        console.log('User added successfully:', newUser);
-        resolve(newUser);
+      const usuario = {
+        nombreUsuario,
+        contrasenaHash: contrasena,
+        fechaCreacion: Date.now()
       };
 
-      req.onerror = () => {
-        console.error('Error adding user:', req.error);
-        reject(req.error);
+      const solicitud = almacen.add(usuario);
+      
+      solicitud.onsuccess = () => {
+        resolver({ ...usuario, id: solicitud.result });
       };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async getUser(username: string, password: string): Promise<User | null> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['usuarios'], 'readonly');
-      const store = trans.objectStore('usuarios');
-      const index = store.index('username');
+  async obtenerUsuario(nombreUsuario: string, contrasena: string): Promise<any> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['usuarios'], 'readonly');
+      const almacen = transaccion.objectStore('usuarios');
+      const indice = almacen.index('nombreUsuario');
       
-      const req = index.get(username);
-
-      req.onsuccess = () => {
-        const userData = req.result;
-        if (userData && userData.password === password) {
-          console.log('User found and authenticated:', userData);
-          resolve(userData);
+      const solicitud = indice.get(nombreUsuario);
+      
+      solicitud.onsuccess = () => {
+        const usuario = solicitud.result;
+        if (usuario && usuario.contrasenaHash === contrasena) {
+          resolver({ id: usuario.id, username: usuario.nombreUsuario });
         } else {
-          console.log('Invalid credentials');
-          resolve(null);
+          resolver(null);
         }
       };
-
-      req.onerror = () => {
-        console.error('Error getting user:', req.error);
-        reject(req.error);
-      };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async addTransaction(userId: number, description: string, amount: number, type: 'Ingreso' | 'Gasto'): Promise<Transaction> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['movimientos'], 'readwrite');
-      const store = trans.objectStore('movimientos');
+  async agregarTransaccion(idUsuario: number, descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto'): Promise<any> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['transacciones'], 'readwrite');
+      const almacen = transaccion.objectStore('transacciones');
       
-      const mov = {
-        userId,
-        description,
-        amount,
-        type,
-        date: Date.now()
-      };
-      
-      const req = store.add(mov);
-
-      req.onsuccess = () => {
-        const newTrans = { ...mov, id: req.result as number };
-        console.log('Transaction added successfully:', newTrans);
-        resolve(newTrans);
+      const nuevaTransaccion = {
+        idUsuario,
+        descripcion,
+        cantidad,
+        tipo,
+        fecha: Date.now()
       };
 
-      req.onerror = () => {
-        console.error('Error adding transaction:', req.error);
-        reject(req.error);
+      const solicitud = almacen.add(nuevaTransaccion);
+      
+      solicitud.onsuccess = () => {
+        resolver({ ...nuevaTransaccion, id: solicitud.result });
       };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async getTransactionsByUserId(userId: number): Promise<Transaction[]> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['movimientos'], 'readonly');
-      const store = trans.objectStore('movimientos');
-      const index = store.index('userId');
+  async obtenerTransaccionesPorUsuario(idUsuario: number): Promise<any[]> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['transacciones'], 'readonly');
+      const almacen = transaccion.objectStore('transacciones');
+      const indice = almacen.index('idUsuario');
       
-      const req = index.getAll(userId);
-
-      req.onsuccess = () => {
-        const transactions = req.result || [];
-        console.log('Transactions retrieved:', transactions);
-        resolve(transactions);
+      const solicitud = indice.getAll(idUsuario);
+      
+      solicitud.onsuccess = () => {
+        const transacciones = solicitud.result.map(t => ({
+          id: t.id,
+          description: t.descripcion,
+          amount: t.cantidad,
+          type: t.tipo,
+          date: t.fecha
+        }));
+        resolver(transacciones);
       };
-
-      req.onerror = () => {
-        console.error('Error getting transactions:', req.error);
-        reject(req.error);
-      };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async addSavingsGoal(userId: number, title: string, targetAmount: number, description?: string, deadline?: number): Promise<SavingsGoal> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['savingsGoals'], 'readwrite');
-      const store = trans.objectStore('savingsGoals');
+  async agregarObjetivoAhorro(idUsuario: number, titulo: string, cantidadObjetivo: number, descripcion?: string, fechaLimite?: number): Promise<any> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['objetivosAhorro'], 'readwrite');
+      const almacen = transaccion.objectStore('objetivosAhorro');
       
-      const goal = {
-        userId,
-        title,
-        targetAmount,
-        currentAmount: 0,
-        description,
-        deadline,
-        createdAt: Date.now()
-      };
-      
-      const req = store.add(goal);
-
-      req.onsuccess = () => {
-        const newGoal = { ...goal, id: req.result as number };
-        console.log('Savings goal added successfully:', newGoal);
-        resolve(newGoal);
+      const nuevoObjetivo = {
+        idUsuario,
+        titulo,
+        cantidadObjetivo,
+        cantidadActual: 0,
+        descripcion,
+        fechaLimite,
+        fechaCreacion: Date.now()
       };
 
-      req.onerror = () => {
-        console.error('Error adding savings goal:', req.error);
-        reject(req.error);
+      const solicitud = almacen.add(nuevoObjetivo);
+      
+      solicitud.onsuccess = () => {
+        resolver({ ...nuevoObjetivo, id: solicitud.result });
       };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async getSavingsGoalsByUserId(userId: number): Promise<SavingsGoal[]> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['savingsGoals'], 'readonly');
-      const store = trans.objectStore('savingsGoals');
-      const index = store.index('userId');
+  async obtenerObjetivosAhorroPorUsuario(idUsuario: number): Promise<any[]> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['objetivosAhorro'], 'readonly');
+      const almacen = transaccion.objectStore('objetivosAhorro');
+      const indice = almacen.index('idUsuario');
       
-      const req = index.getAll(userId);
-
-      req.onsuccess = () => {
-        const goals = req.result || [];
-        console.log('Savings goals retrieved:', goals);
-        resolve(goals);
+      const solicitud = indice.getAll(idUsuario);
+      
+      solicitud.onsuccess = () => {
+        const objetivos = solicitud.result.map(obj => ({
+          id: obj.id,
+          title: obj.titulo,
+          targetAmount: obj.cantidadObjetivo,
+          currentAmount: obj.cantidadActual,
+          description: obj.descripcion,
+          deadline: obj.fechaLimite
+        }));
+        resolver(objetivos);
       };
-
-      req.onerror = () => {
-        console.error('Error getting savings goals:', req.error);
-        reject(req.error);
-      };
+      
+      solicitud.onerror = () => rechazar(solicitud.error);
     });
   }
 
-  async updateSavingsGoalAmount(goalId: number, newAmount: number): Promise<void> {
-    if (!this.db) await this.initDB();
-    
-    return new Promise((resolve, reject) => {
-      const trans = this.db!.transaction(['savingsGoals'], 'readwrite');
-      const store = trans.objectStore('savingsGoals');
+  async actualizarCantidadObjetivoAhorro(idObjetivo: number, nuevaCantidad: number): Promise<void> {
+    const bd = await this.asegurarBD();
+    return new Promise((resolver, rechazar) => {
+      const transaccion = bd.transaction(['objetivosAhorro'], 'readwrite');
+      const almacen = transaccion.objectStore('objetivosAhorro');
       
-      const getReq = store.get(goalId);
+      const solicitudObtener = almacen.get(idObjetivo);
       
-      getReq.onsuccess = () => {
-        const goal = getReq.result;
-        if (goal) {
-          goal.currentAmount = newAmount;
-          const updateReq = store.put(goal);
+      solicitudObtener.onsuccess = () => {
+        const objetivo = solicitudObtener.result;
+        if (objetivo) {
+          objetivo.cantidadActual = nuevaCantidad;
+          const solicitudActualizar = almacen.put(objetivo);
           
-          updateReq.onsuccess = () => {
-            console.log('Savings goal updated successfully');
-            resolve();
-          };
-          
-          updateReq.onerror = () => {
-            console.error('Error updating savings goal:', updateReq.error);
-            reject(updateReq.error);
-          };
+          solicitudActualizar.onsuccess = () => resolver();
+          solicitudActualizar.onerror = () => rechazar(solicitudActualizar.error);
         } else {
-          reject(new Error('Savings goal not found'));
+          rechazar(new Error('Objetivo no encontrado'));
         }
       };
-
-      getReq.onerror = () => {
-        console.error('Error getting savings goal:', getReq.error);
-        reject(getReq.error);
-      };
+      
+      solicitudObtener.onerror = () => rechazar(solicitudObtener.error);
     });
   }
 }
 
-export const indexedDBService = new IndexedDBService();
+export const indexedDBService = new ServicioIndexedDB();

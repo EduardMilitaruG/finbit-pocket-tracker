@@ -9,51 +9,47 @@ interface ProfileProps {
   onLogout: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
+const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
+  const [cargando, setCargando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
 
-  const handleResetData = async () => {
+  const manejarResetearDatos = async () => {
     if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
       return;
     }
 
-    setIsLoading(true);
-    setMessage('');
+    setCargando(true);
+    setMensaje('');
 
     try {
-      // Clear all data for the current user
-      const transactions = await indexedDBService.getTransactionsByUserId(user.id);
-      const savingsGoals = await indexedDBService.getSavingsGoalsByUserId(user.id);
+      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      const objetivosAhorro = await indexedDBService.obtenerObjetivosAhorroPorUsuario(user.id);
       
-      // Note: In a real app, we would need delete methods in IndexedDBService
-      // For now, we'll show a message
-      setMessage('Funcionalidad de reset en desarrollo. Por ahora, puedes cerrar sesión y crear una nueva cuenta.');
+      setMensaje('Funcionalidad de reset en desarrollo. Por ahora, puedes cerrar sesión y crear una nueva cuenta.');
     } catch (error) {
-      console.error('Error resetting data:', error);
-      setMessage('Error al resetear los datos');
+      console.error('Error reseteando datos:', error);
+      setMensaje('Error al resetear los datos');
     } finally {
-      setIsLoading(false);
+      setCargando(false);
     }
   };
 
-  const handleExportCSV = async () => {
-    setIsLoading(true);
-    setMessage('');
+  const manejarExportarCSV = async () => {
+    setCargando(true);
+    setMensaje('');
 
     try {
-      const transactions = await indexedDBService.getTransactionsByUserId(user.id);
+      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
       
-      if (transactions.length === 0) {
-        setMessage('No hay transacciones para exportar');
+      if (transacciones.length === 0) {
+        setMensaje('No hay transacciones para exportar');
         return;
       }
 
-      // Create CSV content
-      const headers = ['Fecha', 'Descripción', 'Cantidad', 'Tipo'];
-      const csvContent = [
-        headers.join(','),
-        ...transactions.map(t => [
+      const encabezados = ['Fecha', 'Descripción', 'Cantidad', 'Tipo'];
+      const contenidoCSV = [
+        encabezados.join(','),
+        ...transacciones.map(t => [
           new Date(t.date).toLocaleDateString('es-ES'),
           `"${t.description}"`,
           t.amount,
@@ -61,81 +57,77 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
         ].join(','))
       ].join('\n');
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+      const enlace = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `finbit-transacciones-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      enlace.setAttribute('href', url);
+      enlace.setAttribute('download', `finbit-transacciones-${new Date().toISOString().split('T')[0]}.csv`);
+      enlace.style.visibility = 'hidden';
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
 
-      setMessage('¡Transacciones exportadas exitosamente!');
+      setMensaje('¡Transacciones exportadas exitosamente!');
     } catch (error) {
-      console.error('Error exporting CSV:', error);
-      setMessage('Error al exportar las transacciones');
+      console.error('Error exportando CSV:', error);
+      setMensaje('Error al exportar las transacciones');
     } finally {
-      setIsLoading(false);
+      setCargando(false);
     }
   };
 
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const manejarImportarCSV = (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = evento.target.files?.[0];
+    if (!archivo) return;
 
-    setIsLoading(true);
-    setMessage('');
+    setCargando(true);
+    setMensaje('');
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
+    const lector = new FileReader();
+    lector.onload = async (e) => {
       try {
         const csv = e.target?.result as string;
-        const lines = csv.split('\n');
-        const headers = lines[0].split(',');
+        const lineas = csv.split('\n');
+        const encabezados = lineas[0].split(',');
         
-        // Validate CSV format
-        if (headers.length < 4 || !headers.includes('Descripción') || !headers.includes('Cantidad') || !headers.includes('Tipo')) {
-          setMessage('Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo');
+        if (encabezados.length < 4 || !encabezados.includes('Descripción') || !encabezados.includes('Cantidad') || !encabezados.includes('Tipo')) {
+          setMensaje('Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo');
           return;
         }
 
-        let importedCount = 0;
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
+        let contadorImportadas = 0;
+        for (let i = 1; i < lineas.length; i++) {
+          const linea = lineas[i].trim();
+          if (!linea) continue;
 
-          const values = line.split(',');
-          if (values.length < 4) continue;
+          const valores = linea.split(',');
+          if (valores.length < 4) continue;
 
-          const description = values[1].replace(/"/g, '');
-          const amount = parseFloat(values[2]);
-          const type = values[3] as 'Ingreso' | 'Gasto';
+          const descripcion = valores[1].replace(/"/g, '');
+          const cantidad = parseFloat(valores[2]);
+          const tipo = valores[3] as 'Ingreso' | 'Gasto';
 
-          if (description && !isNaN(amount) && (type === 'Ingreso' || type === 'Gasto')) {
-            await indexedDBService.addTransaction(user.id, description, amount, type);
-            importedCount++;
+          if (descripcion && !isNaN(cantidad) && (tipo === 'Ingreso' || tipo === 'Gasto')) {
+            await indexedDBService.agregarTransaccion(user.id, descripcion, cantidad, tipo);
+            contadorImportadas++;
           }
         }
 
-        setMessage(`¡${importedCount} transacciones importadas exitosamente!`);
+        setMensaje(`¡${contadorImportadas} transacciones importadas exitosamente!`);
       } catch (error) {
-        console.error('Error importing CSV:', error);
-        setMessage('Error al importar las transacciones');
+        console.error('Error importando CSV:', error);
+        setMensaje('Error al importar las transacciones');
       } finally {
-        setIsLoading(false);
-        // Reset file input
-        event.target.value = '';
+        setCargando(false);
+        evento.target.value = '';
       }
     };
 
-    reader.readAsText(file);
+    lector.readAsText(archivo);
   };
 
   return (
     <div className="space-y-6">
-      {/* Profile Header */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <h3 className="text-2xl font-light text-gray-800 mb-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
@@ -150,45 +142,40 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <h4 className="text-xl font-light text-gray-800 mb-6">Acciones de Cuenta</h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Export CSV */}
           <button
-            onClick={handleExportCSV}
-            disabled={isLoading}
+            onClick={manejarExportarCSV}
+            disabled={cargando}
             className="flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" />
             Exportar a CSV
           </button>
 
-          {/* Import CSV */}
           <label className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white px-6 py-4 rounded-2xl hover:from-blue-600 hover:to-teal-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 cursor-pointer">
             <Upload className="w-5 h-5" />
             Importar CSV
             <input
               type="file"
               accept=".csv"
-              onChange={handleImportCSV}
+              onChange={manejarImportarCSV}
               className="hidden"
-              disabled={isLoading}
+              disabled={cargando}
             />
           </label>
 
-          {/* Reset Data */}
           <button
-            onClick={handleResetData}
-            disabled={isLoading}
+            onClick={manejarResetearDatos}
+            disabled={cargando}
             className="flex items-center gap-3 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 rounded-2xl hover:from-orange-600 hover:to-red-600 transition-all duration-200 disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Trash2 className="w-5 h-5" />
             Resetear Datos
           </button>
 
-          {/* Logout */}
           <button
             onClick={onLogout}
             className="flex items-center gap-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-4 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -198,18 +185,17 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
           </button>
         </div>
 
-        {message && (
+        {mensaje && (
           <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-            message.includes('exitosamente') || message.includes('importadas')
+            mensaje.includes('exitosamente') || mensaje.includes('importadas')
               ? 'bg-green-100/80 text-green-700 border border-green-200' 
               : 'bg-red-100/80 text-red-700 border border-red-200'
           }`}>
-            {message}
+            {mensaje}
           </div>
         )}
       </div>
 
-      {/* CSV Format Info */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <h4 className="text-xl font-light text-gray-800 mb-4">Formato CSV para Importación</h4>
         <div className="bg-gray-50 rounded-2xl p-4 font-mono text-sm">
@@ -224,4 +210,4 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
   );
 };
 
-export default Profile;
+export default Perfil;

@@ -8,76 +8,75 @@ interface SavingsGoalsProps {
   userId: number;
 }
 
-const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
+  const [objetivos, setObjetivos] = useState<SavingsGoal[]>([]);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [titulo, setTitulo] = useState('');
+  const [cantidadObjetivo, setCantidadObjetivo] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [fechaLimite, setFechaLimite] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    loadGoals();
+    cargarObjetivos();
   }, [userId]);
 
-  const loadGoals = async () => {
+  const cargarObjetivos = async () => {
     try {
-      const userGoals = await indexedDBService.getSavingsGoalsByUserId(userId);
-      setGoals(userGoals);
+      const objetivosUsuario = await indexedDBService.obtenerObjetivosAhorroPorUsuario(userId);
+      setObjetivos(objetivosUsuario);
     } catch (error) {
-      console.error('Error loading savings goals:', error);
+      console.error('Error cargando objetivos de ahorro:', error);
     }
   };
 
-  const handleAddGoal = async (e: React.FormEvent) => {
+  const manejarAgregarObjetivo = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
+    setCargando(true);
+    setMensaje('');
 
     try {
-      const deadlineTimestamp = deadline ? new Date(deadline).getTime() : undefined;
-      await indexedDBService.addSavingsGoal(
+      const fechaLimiteTimestamp = fechaLimite ? new Date(fechaLimite).getTime() : undefined;
+      await indexedDBService.agregarObjetivoAhorro(
         userId,
-        title,
-        parseFloat(targetAmount),
-        description || undefined,
-        deadlineTimestamp
+        titulo,
+        parseFloat(cantidadObjetivo),
+        descripcion || undefined,
+        fechaLimiteTimestamp
       );
       
-      setMessage('¡Objetivo de ahorro creado exitosamente!');
-      setTitle('');
-      setTargetAmount('');
-      setDescription('');
-      setDeadline('');
-      setShowForm(false);
-      await loadGoals();
+      setMensaje('¡Objetivo de ahorro creado exitosamente!');
+      setTitulo('');
+      setCantidadObjetivo('');
+      setDescripcion('');
+      setFechaLimite('');
+      setMostrarFormulario(false);
+      await cargarObjetivos();
     } catch (error) {
-      console.error('Error adding savings goal:', error);
-      setMessage('Error al crear objetivo de ahorro');
+      console.error('Error agregando objetivo de ahorro:', error);
+      setMensaje('Error al crear objetivo de ahorro');
     } finally {
-      setIsLoading(false);
+      setCargando(false);
     }
   };
 
-  const handleUpdateAmount = async (goalId: number, currentAmount: number, increment: number) => {
+  const manejarActualizarCantidad = async (idObjetivo: number, cantidadActual: number, incremento: number) => {
     try {
-      const newAmount = Math.max(0, currentAmount + increment);
-      await indexedDBService.updateSavingsGoalAmount(goalId, newAmount);
-      await loadGoals();
+      const nuevaCantidad = Math.max(0, cantidadActual + incremento);
+      await indexedDBService.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
+      await cargarObjetivos();
     } catch (error) {
-      console.error('Error updating savings goal:', error);
+      console.error('Error actualizando objetivo de ahorro:', error);
     }
   };
 
-  const getProgressPercentage = (current: number, target: number) => {
-    return Math.min((current / target) * 100, 100);
+  const obtenerPorcentajeProgreso = (actual: number, objetivo: number) => {
+    return Math.min((actual / objetivo) * 100, 100);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <div className="flex justify-between items-center">
           <div>
@@ -90,7 +89,7 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
             <p className="text-gray-600 font-light">Establece metas y sigue tu progreso</p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setMostrarFormulario(!mostrarFormulario)}
             className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <Plus className="w-5 h-5" />
@@ -99,12 +98,11 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
         </div>
       </div>
 
-      {/* Add Goal Form */}
-      {showForm && (
+      {mostrarFormulario && (
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
           <h4 className="text-xl font-light text-gray-800 mb-6">Crear Nuevo Objetivo</h4>
           
-          <form onSubmit={handleAddGoal} className="space-y-6">
+          <form onSubmit={manejarAgregarObjetivo} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -112,8 +110,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
                 </label>
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
                   className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                   placeholder="Ej: Vacaciones de verano"
                   required
@@ -127,8 +125,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={targetAmount}
-                  onChange={(e) => setTargetAmount(e.target.value)}
+                  value={cantidadObjetivo}
+                  onChange={(e) => setCantidadObjetivo(e.target.value)}
                   className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                   placeholder="0.00"
                   required
@@ -141,8 +139,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
                 Descripción (Opcional)
               </label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
                 className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200 resize-none"
                 placeholder="Describe tu objetivo..."
                 rows={3}
@@ -155,8 +153,8 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
               </label>
               <input
                 type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                value={fechaLimite}
+                onChange={(e) => setFechaLimite(e.target.value)}
                 className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               />
             </div>
@@ -164,14 +162,14 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={cargando}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                {isLoading ? 'Creando...' : 'Crear Objetivo'}
+                {cargando ? 'Creando...' : 'Crear Objetivo'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => setMostrarFormulario(false)}
                 className="bg-gray-200 text-gray-700 px-8 py-4 rounded-2xl hover:bg-gray-300 transition-all duration-200 font-medium text-lg"
               >
                 Cancelar
@@ -179,21 +177,20 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
             </div>
           </form>
 
-          {message && (
+          {mensaje && (
             <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-              message.includes('exitosamente') 
+              mensaje.includes('exitosamente') 
                 ? 'bg-green-100/80 text-green-700 border border-green-200' 
                 : 'bg-red-100/80 text-red-700 border border-red-200'
             }`}>
-              {message}
+              {mensaje}
             </div>
           )}
         </div>
       )}
 
-      {/* Goals List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {goals.length === 0 ? (
+        {objetivos.length === 0 ? (
           <div className="col-span-full bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-12 border border-white/20 text-center">
             <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 text-lg font-light">
@@ -201,76 +198,73 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
             </p>
           </div>
         ) : (
-          goals.map((goal) => {
-            const progress = getProgressPercentage(goal.currentAmount, goal.targetAmount);
-            const isCompleted = progress >= 100;
+          objetivos.map((objetivo) => {
+            const progreso = obtenerPorcentajeProgreso(objetivo.currentAmount, objetivo.targetAmount);
+            const completado = progreso >= 100;
             
             return (
-              <div key={goal.id} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 border border-white/20">
+              <div key={objetivo.id} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 border border-white/20">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h5 className="text-lg font-medium text-gray-800 mb-1">{goal.title}</h5>
-                    {goal.description && (
-                      <p className="text-sm text-gray-600 font-light">{goal.description}</p>
+                    <h5 className="text-lg font-medium text-gray-800 mb-1">{objetivo.title}</h5>
+                    {objetivo.description && (
+                      <p className="text-sm text-gray-600 font-light">{objetivo.description}</p>
                     )}
                   </div>
-                  {isCompleted && (
+                  {completado && (
                     <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
                   )}
                 </div>
 
-                {/* Progress Bar */}
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>€{goal.currentAmount.toFixed(2)}</span>
-                    <span>€{goal.targetAmount.toFixed(2)}</span>
+                    <span>€{objetivo.currentAmount.toFixed(2)}</span>
+                    <span>€{objetivo.targetAmount.toFixed(2)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 
                       className={`h-3 rounded-full transition-all duration-300 ${
-                        isCompleted 
+                        completado 
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
                           : 'bg-gradient-to-r from-purple-400 to-pink-500'
                       }`}
-                      style={{ width: `${progress}%` }}
+                      style={{ width: `${progreso}%` }}
                     />
                   </div>
                   <div className="text-center mt-2">
                     <span className={`text-sm font-medium ${
-                      isCompleted ? 'text-green-600' : 'text-purple-600'
+                      completado ? 'text-green-600' : 'text-purple-600'
                     }`}>
-                      {progress.toFixed(1)}% completado
+                      {progreso.toFixed(1)}% completado
                     </span>
                   </div>
                 </div>
 
-                {/* Deadline */}
-                {goal.deadline && (
+                {objetivo.deadline && (
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                     <Calendar className="w-4 h-4" />
-                    <span>Hasta: {new Date(goal.deadline).toLocaleDateString('es-ES')}</span>
+                    <span>Hasta: {new Date(objetivo.deadline).toLocaleDateString('es-ES')}</span>
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleUpdateAmount(goal.id, goal.currentAmount, 10)}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, 10)}
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 text-sm font-medium"
                   >
                     +€10
                   </button>
                   <button
-                    onClick={() => handleUpdateAmount(goal.id, goal.currentAmount, 50)}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, 50)}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-2 px-4 rounded-xl hover:from-blue-600 hover:to-teal-600 transition-all duration-200 text-sm font-medium"
                   >
                     +€50
                   </button>
                   <button
-                    onClick={() => handleUpdateAmount(goal.id, goal.currentAmount, -10)}
-                    disabled={goal.currentAmount <= 0}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, -10)}
+                    disabled={objetivo.currentAmount <= 0}
                     className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-200 text-sm font-medium disabled:opacity-50"
                   >
                     -€10
@@ -285,4 +279,4 @@ const SavingsGoals: React.FC<SavingsGoalsProps> = ({ userId }) => {
   );
 };
 
-export default SavingsGoals;
+export default ObjetivosAhorro;

@@ -5,43 +5,43 @@ import { User } from '../types/User';
 import { UserPlus, User as UserIcon } from 'lucide-react';
 
 interface RegisterProps {
-  onRegister: (user: User) => void;
+  onRegister: (usuario: User) => void;
   onSwitchToLogin: () => void;
 }
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
-  const [user, setUser] = useState('');
-  const [pass, setPass] = useState('');
-  const [pass2, setPass2] = useState('');
-  const [msg, setMsg] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [usuario, setUsuario] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [cargando, setCargando] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const manejarRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMsg('');
+    setCargando(true);
+    setMensaje('');
 
-    if (pass !== pass2) {
-      setMsg('Las contraseñas no coinciden');
-      setLoading(false);
+    if (contrasena !== confirmarContrasena) {
+      setMensaje('Las contraseñas no coinciden');
+      setCargando(false);
       return;
     }
 
-    if (pass.length < 3) {
-      setMsg('La contraseña debe tener al menos 3 caracteres');
-      setLoading(false);
+    if (contrasena.length < 3) {
+      setMensaje('La contraseña debe tener al menos 3 caracteres');
+      setCargando(false);
       return;
     }
 
     try {
-      const newUser = await indexedDBService.addUser(user, pass);
-      setMsg('¡Usuario registrado exitosamente!');
-      setTimeout(() => onRegister(newUser), 1000);
+      const nuevoUsuario = await indexedDBService.agregarUsuario(usuario, contrasena);
+      setMensaje('¡Usuario registrado exitosamente!');
+      setTimeout(() => onRegister(nuevoUsuario), 1000);
     } catch (error) {
-      console.error('Registration error:', error);
-      setMsg('Error al registrar usuario. El nombre de usuario puede estar en uso.');
+      console.error('Error en registro:', error);
+      setMensaje('Error al registrar usuario. El nombre de usuario puede estar en uso.');
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
@@ -55,7 +55,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
         <p className="text-gray-600 font-light">Crea tu cuenta</p>
       </div>
 
-      <form onSubmit={handleRegister} className="space-y-6">
+      <form onSubmit={manejarRegistro} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Usuario
@@ -64,8 +64,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
             <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="Elige un nombre de usuario"
               required
@@ -79,8 +79,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
+            value={contrasena}
+            onChange={(e) => setContrasena(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Crea una contraseña"
             required
@@ -93,8 +93,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={pass2}
-            onChange={(e) => setPass2(e.target.value)}
+            value={confirmarContrasena}
+            onChange={(e) => setConfirmarContrasena(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Confirma tu contraseña"
             required
@@ -103,20 +103,20 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={cargando}
           className="w-full bg-gradient-to-r from-teal-500 to-green-500 text-white py-4 px-6 rounded-2xl hover:from-teal-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          {loading ? 'Registrando...' : 'Registrarse'}
+          {cargando ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
 
-      {msg && (
+      {mensaje && (
         <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-          msg.includes('exitosamente') 
+          mensaje.includes('exitosamente') 
             ? 'bg-green-100/80 text-green-700 border border-green-200' 
             : 'bg-red-100/80 text-red-700 border border-red-200'
         }`}>
-          {msg}
+          {mensaje}
         </div>
       )}
 

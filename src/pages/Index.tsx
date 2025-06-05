@@ -5,33 +5,32 @@ import Register from '../components/Register';
 import Dashboard from '../components/Dashboard';
 import { User } from '../types/User';
 
-const Index = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'login' | 'register' | 'dashboard'>('login');
+const Inicio = () => {
+  const [usuarioActual, setUsuarioActual] = useState<User | null>(null);
+  const [vistaActual, setVistaActual] = useState<'login' | 'register' | 'dashboard'>('login');
 
   useEffect(() => {
-    // Check if user is already logged in (simple session check)
-    const loggedInUser = sessionStorage.getItem('currentUser');
-    if (loggedInUser) {
-      setCurrentUser(JSON.parse(loggedInUser));
-      setCurrentView('dashboard');
+    const usuarioLogueado = sessionStorage.getItem('usuarioActual');
+    if (usuarioLogueado) {
+      setUsuarioActual(JSON.parse(usuarioLogueado));
+      setVistaActual('dashboard');
     }
   }, []);
 
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    setCurrentView('dashboard');
-    sessionStorage.setItem('currentUser', JSON.stringify(user));
+  const manejarLogin = (usuario: User) => {
+    setUsuarioActual(usuario);
+    setVistaActual('dashboard');
+    sessionStorage.setItem('usuarioActual', JSON.stringify(usuario));
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentView('login');
-    sessionStorage.removeItem('currentUser');
+  const manejarLogout = () => {
+    setUsuarioActual(null);
+    setVistaActual('login');
+    sessionStorage.removeItem('usuarioActual');
   };
 
-  const switchToRegister = () => setCurrentView('register');
-  const switchToLogin = () => setCurrentView('login');
+  const cambiarARegistro = () => setVistaActual('register');
+  const cambiarALogin = () => setVistaActual('login');
 
   return (
     <div 
@@ -43,11 +42,9 @@ const Index = () => {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px]"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-light text-white mb-2 drop-shadow-lg">
             <span className="font-extralight">Fin</span>
@@ -56,26 +53,25 @@ const Index = () => {
           <p className="text-white/90 text-lg font-light drop-shadow-md">Gestión Personal de Finanzas - PFC MVP</p>
         </div>
 
-        {/* Main Content */}
         <div className="max-w-4xl mx-auto">
-          {currentView === 'login' && (
+          {vistaActual === 'login' && (
             <Login 
-              onLogin={handleLogin} 
-              onSwitchToRegister={switchToRegister}
+              onLogin={manejarLogin} 
+              onSwitchToRegister={cambiarARegistro}
             />
           )}
           
-          {currentView === 'register' && (
+          {vistaActual === 'register' && (
             <Register 
-              onRegister={handleLogin}
-              onSwitchToLogin={switchToLogin}
+              onRegister={manejarLogin}
+              onSwitchToLogin={cambiarALogin}
             />
           )}
           
-          {currentView === 'dashboard' && currentUser && (
+          {vistaActual === 'dashboard' && usuarioActual && (
             <Dashboard 
-              user={currentUser}
-              onLogout={handleLogout}
+              user={usuarioActual}
+              onLogout={manejarLogout}
             />
           )}
         </div>
@@ -84,4 +80,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Inicio;
