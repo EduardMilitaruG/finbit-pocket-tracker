@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { indexedDBService } from '../services/IndexedDBService';
 import { User, Transaction } from '../types/User';
-import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3, CreditCard } from 'lucide-react';
+import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3, CreditCard, Filter, Download } from 'lucide-react';
 import SavingsGoals from './SavingsGoals';
 import Profile from './Profile';
 import Markets from './Markets';
+import ConexionBancaria from './ConexionBancaria';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardProps {
   user: User;
@@ -18,7 +20,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [tipo, setTipo] = useState<'Ingreso' | 'Gasto'>('Ingreso');
   const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [pestanaActiva, setPestanaActiva] = useState<'transacciones' | 'ahorros' | 'mercados' | 'perfil'>('transacciones');
+  const [pestanaActiva, setPestanaActiva] = useState<'transacciones' | 'ahorros' | 'mercados' | 'perfil' | 'banco'>('transacciones');
+  
+  // Estados para filtros
+  const [filtroTipo, setFiltroTipo] = useState<'Todos' | 'Ingreso' | 'Gasto'>('Todos');
+  const [busqueda, setBusqueda] = useState('');
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     cargarTransacciones();
@@ -33,24 +42,105 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
+  const validarFormulario = () => {
+    if (!descripcion.trim()) {
+      toast({
+        title: "Error de validación",
+        description: "La descripción es obligatoria",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const cantidadNum = parseFloat(cantidad);
+    if (isNaN(cantidadNum) || cantidadNum <= 0) {
+      toast({
+        title: "Error de validación",
+        description: "La cantidad debe ser un número positivo",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const manejarAgregarTransaccion = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validarFormulario()) {
+      return;
+    }
+
     setCargando(true);
     setMensaje('');
 
     try {
       await indexedDBService.agregarTransaccion(user.id, descripcion, parseFloat(cantidad), tipo);
-      setMensaje('¡Transacción agregada exitosamente!');
+      toast({
+        title: "¡Éxito!",
+        description: "Transacción agregada correctamente"
+      });
       setDescripcion('');
       setCantidad('');
       setTipo('Ingreso');
       await cargarTransacciones();
     } catch (error) {
       console.error('Error agregando transacción:', error);
-      setMensaje('Error al agregar transacción');
+      toast({
+        title: "Error",
+        description: "No se pudo agregar la transacción",
+        variant: "destructive"
+      });
     } finally {
       setCargando(false);
     }
+  };
+
+  const exportarCSV = () => {
+    const transaccionesFiltradas = filtrarTransacciones();
+    
+    if (transaccionesFiltradas.length === 0) {
+      toast({
+        title: "Sin datos",
+        description: "No hay transacciones para exportar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const headers = ['Fecha', 'Descripción', 'Tipo', 'Cantidad'];
+    const csvContent = [
+      headers.join(','),
+      ...transaccionesFiltradas.map(t => [
+        new Date(t.date).toLocaleDateString('es-ES'),
+        `"${t.description}"`,
+        t.type,
+        t.amount.toFixed(2)
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transacciones_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "¡Exportado!",
+      description: "Archivo CSV descargado correctamente"
+    });
+  };
+
+  const filtrarTransacciones = () => {
+    return transacciones.filter(transaccion => {
+      const cumpleTipo = filtroTipo === 'Todos' || transaccion.type === filtroTipo;
+      const cumpleBusqueda = transaccion.description.toLowerCase().includes(busqueda.toLowerCase());
+      return cumpleTipo && cumpleBusqueda;
+    });
   };
 
   const calcularBalance = () => {
@@ -76,6 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const balance = calcularBalance();
   const totalIngresos = obtenerTotalIngresos();
   const totalGastos = obtenerTotalGastos();
+  const transaccionesFiltradas = filtrarTransacciones();
 
   return (
     <div className="space-y-6">
@@ -168,6 +259,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           </button>
           <button
+            onClick={() => setPestanaActiva('banco')}
+            className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
+              pestanaActiva === 'banco'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                : 'text-gray-600 hover:bg-white/50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Conectar Banco
+            </div>
+          </button>
+          <button
             onClick={() => setPestanaActiva('mercados')}
             className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
               pestanaActiva === 'mercados'
@@ -229,6 +333,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <input
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
                     className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
@@ -260,27 +365,71 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 {cargando ? 'Agregando...' : 'Agregar Transacción'}
               </button>
             </form>
-
-            {mensaje && (
-              <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-                mensaje.includes('exitosamente') 
-                  ? 'bg-green-100/80 text-green-700 border border-green-200' 
-                  : 'bg-red-100/80 text-red-700 border border-red-200'
-              }`}>
-                {mensaje}
-              </div>
-            )}
           </div>
 
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
-            <h3 className="text-2xl font-light text-gray-800 mb-6">
-              Historial de Transacciones <span className="text-lg text-gray-500">({transacciones.length})</span>
-            </h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-light text-gray-800">
+                Historial de Transacciones <span className="text-lg text-gray-500">({transaccionesFiltradas.length})</span>
+              </h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-200 font-medium"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filtros
+                </button>
+                <button
+                  onClick={exportarCSV}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar CSV
+                </button>
+              </div>
+            </div>
+
+            {mostrarFiltros && (
+              <div className="mb-6 p-4 bg-gray-50/50 rounded-2xl border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Filtrar por tipo
+                    </label>
+                    <select
+                      value={filtroTipo}
+                      onChange={(e) => setFiltroTipo(e.target.value as 'Todos' | 'Ingreso' | 'Gasto')}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Ingreso">Ingresos</option>
+                      <option value="Gasto">Gastos</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Buscar por descripción
+                    </label>
+                    <input
+                      type="text"
+                      value={busqueda}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                      placeholder="Buscar transacciones..."
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             
-            {transacciones.length === 0 ? (
+            {transaccionesFiltradas.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg font-light">
-                  No hay transacciones registradas. ¡Agrega tu primera transacción!
+                  {transacciones.length === 0 
+                    ? "No hay transacciones registradas. ¡Agrega tu primera transacción!"
+                    : "No se encontraron transacciones con los filtros aplicados."
+                  }
                 </p>
               </div>
             ) : (
@@ -295,7 +444,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {transacciones
+                    {transaccionesFiltradas
                       .sort((a, b) => b.date - a.date)
                       .map((transaccion) => (
                         <tr key={transaccion.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
@@ -327,6 +476,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </>
       ) : pestanaActiva === 'ahorros' ? (
         <SavingsGoals userId={user.id} />
+      ) : pestanaActiva === 'banco' ? (
+        <ConexionBancaria userId={user.id} onTransaccionesImportadas={cargarTransacciones} />
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (
