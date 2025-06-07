@@ -1,38 +1,63 @@
 
 class ServicioIndexedDB {
   private nombreBD = 'FinBitDB';
-  private version = 1;
+  private version = 2; // Incrementamos la versión para evitar conflictos
   private bd: IDBDatabase | null = null;
 
   async inicializar(): Promise<void> {
     return new Promise((resolver, rechazar) => {
-      const solicitud = indexedDB.open(this.nombreBD, this.version);
-
-      solicitud.onerror = () => rechazar(solicitud.error);
-      solicitud.onsuccess = () => {
-        this.bd = solicitud.result;
-        resolver();
+      // Primero intentamos eliminar la BD existente para evitar conflictos de versión
+      const solicitudEliminacion = indexedDB.deleteDatabase(this.nombreBD);
+      
+      solicitudEliminacion.onsuccess = () => {
+        console.log('Base de datos anterior eliminada exitosamente');
+        this.crearBaseDatos(resolver, rechazar);
       };
-
-      solicitud.onupgradeneeded = (evento) => {
-        const bd = (evento.target as IDBOpenDBRequest).result;
-
-        if (!bd.objectStoreNames.contains('usuarios')) {
-          const almacenUsuarios = bd.createObjectStore('usuarios', { keyPath: 'id', autoIncrement: true });
-          almacenUsuarios.createIndex('nombreUsuario', 'nombreUsuario', { unique: true });
-        }
-
-        if (!bd.objectStoreNames.contains('transacciones')) {
-          const almacenTransacciones = bd.createObjectStore('transacciones', { keyPath: 'id', autoIncrement: true });
-          almacenTransacciones.createIndex('idUsuario', 'idUsuario', { unique: false });
-        }
-
-        if (!bd.objectStoreNames.contains('objetivosAhorro')) {
-          const almacenObjetivos = bd.createObjectStore('objetivosAhorro', { keyPath: 'id', autoIncrement: true });
-          almacenObjetivos.createIndex('idUsuario', 'idUsuario', { unique: false });
-        }
+      
+      solicitudEliminacion.onerror = () => {
+        console.log('No se pudo eliminar la BD anterior, intentando crear nueva');
+        this.crearBaseDatos(resolver, rechazar);
+      };
+      
+      solicitudEliminacion.onblocked = () => {
+        console.log('Eliminación bloqueada, intentando crear nueva BD');
+        this.crearBaseDatos(resolver, rechazar);
       };
     });
+  }
+
+  private crearBaseDatos(resolver: () => void, rechazar: (error: any) => void): void {
+    const solicitud = indexedDB.open(this.nombreBD, this.version);
+
+    solicitud.onerror = () => rechazar(solicitud.error);
+    solicitud.onsuccess = () => {
+      this.bd = solicitud.result;
+      console.log('Base de datos inicializada correctamente');
+      resolver();
+    };
+
+    solicitud.onupgradeneeded = (evento) => {
+      console.log('Creando estructura de base de datos');
+      const bd = (evento.target as IDBOpenDBRequest).result;
+
+      if (!bd.objectStoreNames.contains('usuarios')) {
+        const almacenUsuarios = bd.createObjectStore('usuarios', { keyPath: 'id', autoIncrement: true });
+        almacenUsuarios.createIndex('nombreUsuario', 'nombreUsuario', { unique: true });
+        console.log('Almacén de usuarios creado');
+      }
+
+      if (!bd.objectStoreNames.contains('transacciones')) {
+        const almacenTransacciones = bd.createObjectStore('transacciones', { keyPath: 'id', autoIncrement: true });
+        almacenTransacciones.createIndex('idUsuario', 'idUsuario', { unique: false });
+        console.log('Almacén de transacciones creado');
+      }
+
+      if (!bd.objectStoreNames.contains('objetivosAhorro')) {
+        const almacenObjetivos = bd.createObjectStore('objetivosAhorro', { keyPath: 'id', autoIncrement: true });
+        almacenObjetivos.createIndex('idUsuario', 'idUsuario', { unique: false });
+        console.log('Almacén de objetivos de ahorro creado');
+      }
+    };
   }
 
   private async asegurarBD(): Promise<IDBDatabase> {
