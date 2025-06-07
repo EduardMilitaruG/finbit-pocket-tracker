@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { indexedDBService } from '../services/IndexedDBService';
 import { User, Transaction } from '../types/User';
-import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3 } from 'lucide-react';
+import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3, CreditCard } from 'lucide-react';
 import SavingsGoals from './SavingsGoals';
 import Profile from './Profile';
 import Markets from './Markets';
