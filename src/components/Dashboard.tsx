@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { indexedDBService } from '../services/IndexedDBService';
+import { supabaseService } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
 import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3, CreditCard, Filter, Download } from 'lucide-react';
 import SavingsGoals from './SavingsGoals';
@@ -18,7 +18,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [descripcion, setDescripcion] = useState('');
   const [cantidad, setCantidad] = useState('');
   const [tipo, setTipo] = useState<'Ingreso' | 'Gasto'>('Ingreso');
-  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
   const [pestanaActiva, setPestanaActiva] = useState<'transacciones' | 'ahorros' | 'mercados' | 'perfil' | 'banco'>('transacciones');
   
@@ -35,10 +34,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   const cargarTransacciones = async () => {
     try {
-      const transaccionesUsuario = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      const transaccionesUsuario = await supabaseService.getTransactions(user.id);
       setTransacciones(transaccionesUsuario);
     } catch (error) {
       console.error('Error cargando transacciones:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las transacciones",
+        variant: "destructive"
+      });
     }
   };
 
@@ -73,10 +77,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
 
     setCargando(true);
-    setMensaje('');
 
     try {
-      await indexedDBService.agregarTransaccion(user.id, descripcion, parseFloat(cantidad), tipo);
+      await supabaseService.addTransaction(descripcion, parseFloat(cantidad), tipo);
       toast({
         title: "¡Éxito!",
         description: "Transacción agregada correctamente"

@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { indexedDBService } from '../services/IndexedDBService';
+import { supabaseService } from '../services/SupabaseService';
 import { User } from '../types/User';
-import { UserPlus, User as UserIcon } from 'lucide-react';
+import { UserPlus, User as UserIcon, Mail } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface RegisterProps {
   onRegister: (usuario: User) => void;
@@ -10,36 +11,66 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
-  const [usuario, setUsuario] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [confirmarContrasena, setConfirmarContrasena] = useState('');
-  const [mensaje, setMensaje] = useState('');
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cargando, setCargando] = useState(false);
+  const { toast } = useToast();
 
   const manejarRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
-    setMensaje('');
 
-    if (contrasena !== confirmarContrasena) {
-      setMensaje('Las contraseñas no coinciden');
+    if (password !== confirmarPassword) {
+      toast({
+        title: "Error",
+        description: "Las contraseñas no coinciden",
+        variant: "destructive"
+      });
       setCargando(false);
       return;
     }
 
-    if (contrasena.length < 3) {
-      setMensaje('La contraseña debe tener al menos 3 caracteres');
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "La contraseña debe tener al menos 6 caracteres",
+        variant: "destructive"
+      });
       setCargando(false);
       return;
     }
 
     try {
-      const nuevoUsuario = await indexedDBService.agregarUsuario(usuario, contrasena);
-      setMensaje('¡Usuario registrado exitosamente!');
-      setTimeout(() => onRegister(nuevoUsuario), 1000);
-    } catch (error) {
+      await supabaseService.signUp(email, password, username);
+      
+      toast({
+        title: "¡Registro exitoso!",
+        description: "Revisa tu email para confirmar tu cuenta"
+      });
+      
+      // Después del registro exitoso, intentar login automático
+      setTimeout(async () => {
+        try {
+          await supabaseService.signIn(email, password);
+          const user = await supabaseService.getCurrentUser();
+          if (user) {
+            onRegister(user);
+          }
+        } catch (error) {
+          // Si falla el login automático, redirigir a login
+          onSwitchToLogin();
+        }
+      }, 1000);
+      
+    } catch (error: any) {
       console.error('Error en registro:', error);
-      setMensaje('Error al registrar usuario. El nombre de usuario puede estar en uso.');
+      toast({
+        title: "Error",
+        description: error.message || "Error al registrar usuario",
+        variant: "destructive"
+      });
     } finally {
       setCargando(false);
     }
@@ -58,14 +89,31 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
       <form onSubmit={manejarRegistro} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Usuario
+            Email
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
+              placeholder="tu@email.com"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nombre de Usuario
           </label>
           <div className="relative">
             <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="Elige un nombre de usuario"
               required
@@ -79,10 +127,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={contrasena}
-            onChange={(e) => setContrasena(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
-            placeholder="Crea una contraseña"
+            placeholder="Mínimo 6 caracteres"
             required
           />
         </div>
@@ -93,8 +141,8 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           </label>
           <input
             type="password"
-            value={confirmarContrasena}
-            onChange={(e) => setConfirmarContrasena(e.target.value)}
+            value={confirmarPassword}
+            onChange={(e) => setConfirmarPassword(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Confirma tu contraseña"
             required
@@ -109,16 +157,6 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
           {cargando ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
-
-      {mensaje && (
-        <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-          mensaje.includes('exitosamente') 
-            ? 'bg-green-100/80 text-green-700 border border-green-200' 
-            : 'bg-red-100/80 text-red-700 border border-red-200'
-        }`}>
-          {mensaje}
-        </div>
-      )}
 
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-600 font-light">
