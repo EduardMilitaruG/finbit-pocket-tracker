@@ -16,7 +16,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (evento, nuevaSesion) => {
-        console.log('Cambio auth:', evento, nuevaSesion);
         setSesion(nuevaSesion);
         setUsuario(nuevaSesion?.user ?? null);
         setCargandoInicial(false);
@@ -39,7 +38,6 @@ const App: React.FC = () => {
   } : null;
 
   const cerrarSesion = async () => {
-    console.log('Cerrando sesión...');
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error logout:', error);
