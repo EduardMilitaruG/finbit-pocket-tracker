@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { servicioSupabase } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
@@ -15,6 +14,8 @@ import TarjetaEstadistica from './dashboard/TarjetaEstadistica';
 import PestanasNavegacion from './dashboard/PestanasNavegacion';
 import FormularioTransaccion from './dashboard/FormularioTransaccion';
 import HistorialTransacciones from './dashboard/HistorialTransacciones';
+import GraficoBalanceMensual from './dashboard/GraficoBalanceMensual';
+import WidgetMonedas from './dashboard/WidgetMonedas';
 
 interface PropiedadesTablero {
   usuario: User;
@@ -162,14 +163,21 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
     switch (pestanaActual) {
       case 'transacciones':
         return (
-          <>
+          <div className="space-y-6">
             <FormularioTransaccion 
               alEnviar={manejarNuevaTransaccion}
               estaCargando={estaProcesando}
               userId={usuario.id}
             />
+            
+            {/* Gráfico de Balance Mensual */}
+            <GraficoBalanceMensual transacciones={transaccionesUsuario} />
+            
+            {/* Widget de Monedas */}
+            <WidgetMonedas />
+            
             <HistorialTransacciones transacciones={transaccionesUsuario} />
-          </>
+          </div>
         );
       case 'ahorros':
         return usuario?.id ? <ObjetivosAhorro userId={usuario.id} /> : null;
