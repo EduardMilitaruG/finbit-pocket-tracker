@@ -12,6 +12,8 @@ export interface Transaction {
   amount: number;
   type: 'Ingreso' | 'Gasto';
   date: number;
+  savingsGoalId?: string; // ID del objetivo de ahorro vinculado
+  savingsGoalTitle?: string; // Título del objetivo de ahorro para mostrar
 }
 
 export interface SavingsGoal {

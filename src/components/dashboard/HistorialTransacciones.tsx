@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Filter, Download } from 'lucide-react';
+import { Filter, Download, Target } from 'lucide-react';
 import { Transaction } from '../../types/User';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,7 +11,8 @@ interface PropiedadesHistorialTransacciones {
 const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ transacciones }) => {
   const [opcionesFiltro, setOpcionesFiltro] = useState({
     tipo: 'Todos' as 'Todos' | 'Ingreso' | 'Gasto',
-    busqueda: ''
+    busqueda: '',
+    soloVinculadas: false
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const { toast } = useToast();
@@ -20,7 +21,8 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
     return transacciones.filter(transaccion => {
       const coincideTipo = opcionesFiltro.tipo === 'Todos' || transaccion.type === opcionesFiltro.tipo;
       const coincideBusqueda = transaccion.description.toLowerCase().includes(opcionesFiltro.busqueda.toLowerCase());
-      return coincideTipo && coincideBusqueda;
+      const coincideVinculacion = !opcionesFiltro.soloVinculadas || !!transaccion.savingsGoalId;
+      return coincideTipo && coincideBusqueda && coincideVinculacion;
     });
   };
 
@@ -36,14 +38,15 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
       return;
     }
 
-    const encabezados = ['Fecha', 'Descripción', 'Tipo', 'Cantidad'];
+    const encabezados = ['Fecha', 'Descripción', 'Tipo', 'Cantidad', 'Objetivo de Ahorro'];
     const datosCSV = [
       encabezados.join(','),
       ...datosFiltrados.map(t => [
         new Date(t.date).toLocaleDateString('es-ES'),
         `"${t.description}"`,
         t.type,
-        t.amount.toFixed(2)
+        t.amount.toFixed(2),
+        `"${t.savingsGoalTitle || 'Sin vincular'}"`
       ].join(','))
     ].join('\n');
 
@@ -62,7 +65,7 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
     });
   };
 
-  const actualizarFiltro = (campo: keyof typeof opcionesFiltro, valor: string) => {
+  const actualizarFiltro = (campo: keyof typeof opcionesFiltro, valor: string | boolean) => {
     setOpcionesFiltro(prev => ({ ...prev, [campo]: valor }));
   };
 
@@ -94,7 +97,7 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
 
       {mostrarFiltros && (
         <div className="mb-6 p-4 bg-gray-50/50 rounded-2xl border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filtrar por tipo
@@ -121,6 +124,23 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
                 placeholder="Buscar transacciones..."
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filtros adicionales
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="soloVinculadas"
+                  checked={opcionesFiltro.soloVinculadas}
+                  onChange={(e) => actualizarFiltro('soloVinculadas', e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="soloVinculadas" className="text-sm text-gray-700">
+                  Solo vinculadas a objetivos
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -142,6 +162,7 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
                 <th className="text-left py-4 px-4 font-medium text-gray-700">Fecha</th>
                 <th className="text-left py-4 px-4 font-medium text-gray-700">Descripción</th>
                 <th className="text-left py-4 px-4 font-medium text-gray-700">Tipo</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-700">Objetivo</th>
                 <th className="text-right py-4 px-4 font-medium text-gray-700">Cantidad</th>
               </tr>
             </thead>
@@ -162,6 +183,18 @@ const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ t
                       }`}>
                         {transaccion.type}
                       </span>
+                    </td>
+                    <td className="py-4 px-4 text-sm">
+                      {transaccion.savingsGoalTitle ? (
+                        <div className="flex items-center gap-1 text-purple-600">
+                          <Target className="w-3 h-3" />
+                          <span className="text-xs truncate max-w-[100px]" title={transaccion.savingsGoalTitle}>
+                            {transaccion.savingsGoalTitle}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Sin vincular</span>
+                      )}
                     </td>
                     <td className={`py-4 px-4 text-sm text-right font-medium ${
                       transaccion.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'

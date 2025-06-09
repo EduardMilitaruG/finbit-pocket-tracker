@@ -12,12 +12,22 @@ class ServicioSupabaseLegacy {
     return servicioDatos.crearPerfilUsuario(idUsuario, nombreUsuario);
   }
 
-  async agregarTransaccion(idUsuario: string, descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') {
-    return servicioDatos.agregarNuevaTransaccion(idUsuario, descripcion, cantidad, tipo);
+  async agregarTransaccion(
+    idUsuario: string, 
+    descripcion: string, 
+    cantidad: number, 
+    tipo: 'Ingreso' | 'Gasto',
+    objetivoAhorroId?: string
+  ) {
+    return servicioDatos.agregarNuevaTransaccion(idUsuario, descripcion, cantidad, tipo, objetivoAhorroId);
   }
 
   async obtenerTransaccionesPorUsuario(idUsuario: string) {
     return servicioDatos.obtenerTransaccionesUsuario(idUsuario);
+  }
+
+  async obtenerTransaccionesPorObjetivo(idObjetivo: string) {
+    return servicioDatos.obtenerTransaccionesPorObjetivo(idObjetivo);
   }
 
   async agregarObjetivoAhorro(
@@ -36,6 +46,10 @@ class ServicioSupabaseLegacy {
 
   async actualizarCantidadObjetivoAhorro(idObjetivo: string, nuevaCantidad: number) {
     return servicioDatos.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
+  }
+
+  async calcularYActualizarMontoObjetivo(idObjetivo: string) {
+    return servicioDatos.calcularYActualizarMontoObjetivo(idObjetivo);
   }
 }
 

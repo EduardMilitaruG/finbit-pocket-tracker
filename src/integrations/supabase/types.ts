@@ -60,57 +60,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          username: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          username?: string
-        }
-        Relationships: []
-      }
-      savings_goals: {
-        Row: {
-          created_at: string
-          current_amount: number
-          deadline: string | null
-          description: string | null
-          id: string
-          target_amount: number
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          current_amount?: number
-          deadline?: string | null
-          description?: string | null
-          id?: string
-          target_amount: number
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          current_amount?: number
-          deadline?: string | null
-          description?: string | null
-          id?: string
-          target_amount?: number
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       transacciones: {
         Row: {
           cantidad: number
@@ -118,6 +67,7 @@ export type Database = {
           fecha: string
           fecha_creacion: string
           id: string
+          objetivo_ahorro_id: string | null
           tipo: string
           usuario_id: string
         }
@@ -127,6 +77,7 @@ export type Database = {
           fecha?: string
           fecha_creacion?: string
           id?: string
+          objetivo_ahorro_id?: string | null
           tipo: string
           usuario_id: string
         }
@@ -136,40 +87,19 @@ export type Database = {
           fecha?: string
           fecha_creacion?: string
           id?: string
+          objetivo_ahorro_id?: string | null
           tipo?: string
           usuario_id?: string
         }
-        Relationships: []
-      }
-      transactions: {
-        Row: {
-          amount: number
-          created_at: string
-          date: string
-          description: string
-          id: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          date?: string
-          description: string
-          id?: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          date?: string
-          description?: string
-          id?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transacciones_objetivo_ahorro_id_fkey"
+            columns: ["objetivo_ahorro_id"]
+            isOneToOne: false
+            referencedRelation: "objetivos_ahorro"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

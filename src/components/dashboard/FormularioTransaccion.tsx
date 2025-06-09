@@ -1,20 +1,38 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { servicioSupabase } from '../../services/SupabaseService';
+import { SavingsGoal } from '../../types/User';
 
 interface PropiedadesFormularioTransaccion {
-  alEnviar: (descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') => Promise<void>;
+  alEnviar: (descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto', objetivoAhorroId?: string) => Promise<void>;
   estaCargando: boolean;
+  userId: string;
 }
 
-const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alEnviar, estaCargando }) => {
+const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alEnviar, estaCargando, userId }) => {
   const [datosFormulario, setDatosFormulario] = useState({
     descripcion: '',
     cantidad: '',
-    tipo: 'Ingreso' as 'Ingreso' | 'Gasto'
+    tipo: 'Ingreso' as 'Ingreso' | 'Gasto',
+    objetivoAhorroId: ''
   });
+  const [objetivosAhorro, setObjetivosAhorro] = useState<SavingsGoal[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    cargarObjetivosAhorro();
+  }, [userId]);
+
+  const cargarObjetivosAhorro = async () => {
+    try {
+      const objetivos = await servicioSupabase.obtenerObjetivosAhorroPorUsuario(userId);
+      setObjetivosAhorro(objetivos);
+    } catch (error) {
+      console.error('Error cargando objetivos de ahorro:', error);
+    }
+  };
 
   const validarEntrada = () => {
     if (!datosFormulario.descripcion.trim()) {
@@ -45,13 +63,19 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alE
     if (!validarEntrada()) return;
 
     try {
-      await alEnviar(datosFormulario.descripcion, parseFloat(datosFormulario.cantidad), datosFormulario.tipo);
+      await alEnviar(
+        datosFormulario.descripcion, 
+        parseFloat(datosFormulario.cantidad), 
+        datosFormulario.tipo,
+        datosFormulario.objetivoAhorroId || undefined
+      );
       
       // Reiniciar formulario después del envío exitoso
       setDatosFormulario({
         descripcion: '',
         cantidad: '',
-        tipo: 'Ingreso'
+        tipo: 'Ingreso',
+        objetivoAhorroId: ''
       });
     } catch (error) {
       // El manejo de errores se hace en el componente padre
@@ -72,7 +96,7 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alE
       </h3>
       
       <form onSubmit={manejarEnvioFormulario} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Descripción
@@ -114,6 +138,24 @@ const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alE
             >
               <option value="Ingreso">Ingreso</option>
               <option value="Gasto">Gasto</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Objetivo de Ahorro (Opcional)
+            </label>
+            <select
+              value={datosFormulario.objetivoAhorroId}
+              onChange={(e) => actualizarCampoFormulario('objetivoAhorroId', e.target.value)}
+              className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
+            >
+              <option value="">Sin vincular</option>
+              {objetivosAhorro.map((objetivo) => (
+                <option key={objetivo.id} value={objetivo.id}>
+                  {objetivo.title}
+                </option>
+              ))}
             </select>
           </div>
         </div>

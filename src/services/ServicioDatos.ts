@@ -42,18 +42,30 @@ class ServicioDatos {
   }
 
   // Gestión de transacciones
-  async agregarNuevaTransaccion(idUsuario: string, descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') {
-    console.log('Agregando transacción:', { idUsuario, descripcion, cantidad, tipo });
+  async agregarNuevaTransaccion(
+    idUsuario: string, 
+    descripcion: string, 
+    cantidad: number, 
+    tipo: 'Ingreso' | 'Gasto',
+    objetivoAhorroId?: string
+  ) {
+    console.log('Agregando transacción:', { idUsuario, descripcion, cantidad, tipo, objetivoAhorroId });
     
+    const datosTransaccion: any = {
+      usuario_id: idUsuario,
+      descripcion,
+      cantidad,
+      tipo,
+      fecha: new Date().toISOString()
+    };
+
+    if (objetivoAhorroId) {
+      datosTransaccion.objetivo_ahorro_id = objetivoAhorroId;
+    }
+
     const { data, error } = await supabase
       .from('transacciones')
-      .insert([{
-        usuario_id: idUsuario,
-        descripcion,
-        cantidad,
-        tipo,
-        fecha: new Date().toISOString()
-      }])
+      .insert([datosTransaccion])
       .select()
       .single();
 
@@ -70,7 +82,13 @@ class ServicioDatos {
     
     const { data, error } = await supabase
       .from('transacciones')
-      .select('*')
+      .select(`
+        *,
+        objetivos_ahorro:objetivo_ahorro_id (
+          id,
+          titulo
+        )
+      `)
       .eq('usuario_id', idUsuario)
       .order('fecha_creacion', { ascending: false });
 
@@ -85,7 +103,33 @@ class ServicioDatos {
       description: transaccion.descripcion,
       amount: parseFloat(transaccion.cantidad),
       type: transaccion.tipo as 'Ingreso' | 'Gasto',
-      date: new Date(transaccion.fecha).getTime()
+      date: new Date(transaccion.fecha).getTime(),
+      savingsGoalId: transaccion.objetivo_ahorro_id,
+      savingsGoalTitle: transaccion.objetivos_ahorro?.titulo
+    }));
+  }
+
+  async obtenerTransaccionesPorObjetivo(idObjetivo: string): Promise<Transaction[]> {
+    console.log('Obteniendo transacciones para objetivo:', idObjetivo);
+    
+    const { data, error } = await supabase
+      .from('transacciones')
+      .select('*')
+      .eq('objetivo_ahorro_id', idObjetivo)
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) {
+      console.error('Error obteniendo transacciones por objetivo:', error);
+      throw error;
+    }
+
+    return (data || []).map(transaccion => ({
+      id: transaccion.id,
+      description: transaccion.descripcion,
+      amount: parseFloat(transaccion.cantidad),
+      type: transaccion.tipo as 'Ingreso' | 'Gasto',
+      date: new Date(transaccion.fecha).getTime(),
+      savingsGoalId: transaccion.objetivo_ahorro_id
     }));
   }
 
@@ -170,6 +214,28 @@ class ServicioDatos {
     }
 
     return data;
+  }
+
+  async calcularYActualizarMontoObjetivo(idObjetivo: string) {
+    console.log('Calculando y actualizando monto del objetivo:', idObjetivo);
+    
+    try {
+      // Obtener todas las transacciones vinculadas a este objetivo
+      const transacciones = await this.obtenerTransaccionesPorObjetivo(idObjetivo);
+      
+      // Calcular el monto total de ingresos vinculados al objetivo
+      const montoTotal = transacciones
+        .filter(t => t.type === 'Ingreso')
+        .reduce((total, t) => total + t.amount, 0);
+
+      // Actualizar el objetivo con el nuevo monto
+      await this.actualizarCantidadObjetivoAhorro(idObjetivo, montoTotal);
+      
+      return montoTotal;
+    } catch (error) {
+      console.error('Error calculando monto del objetivo:', error);
+      throw error;
+    }
   }
 }
 

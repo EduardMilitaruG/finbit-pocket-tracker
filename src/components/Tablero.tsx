@@ -96,14 +96,29 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
     }
   };
 
-  const manejarNuevaTransaccion = async (descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') => {
+  const manejarNuevaTransaccion = async (
+    descripcion: string, 
+    cantidad: number, 
+    tipo: 'Ingreso' | 'Gasto',
+    objetivoAhorroId?: string
+  ) => {
     if (!usuario?.id) return;
 
     setEstaProcesando(true);
 
     try {
       console.log('Agregando transacción para usuario:', usuario.id);
-      await servicioSupabase.agregarTransaccion(usuario.id, descripcion, cantidad, tipo);
+      await servicioSupabase.agregarTransaccion(usuario.id, descripcion, cantidad, tipo, objetivoAhorroId);
+      
+      // Si la transacción está vinculada a un objetivo, actualizar el monto del objetivo
+      if (objetivoAhorroId && tipo === 'Ingreso') {
+        try {
+          await servicioSupabase.calcularYActualizarMontoObjetivo(objetivoAhorroId);
+        } catch (error) {
+          console.error('Error actualizando objetivo:', error);
+        }
+      }
+      
       toast({
         title: "¡Perfecto!",
         description: "Transacción agregada correctamente"
@@ -151,6 +166,7 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
             <FormularioTransaccion 
               alEnviar={manejarNuevaTransaccion}
               estaCargando={estaProcesando}
+              userId={usuario.id}
             />
             <HistorialTransacciones transacciones={transaccionesUsuario} />
           </>
