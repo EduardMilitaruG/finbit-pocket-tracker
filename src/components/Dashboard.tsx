@@ -120,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         new Date(t.date).toLocaleDateString('es-ES'),
         `"${t.description}"`,
         t.type,
-        t.amount.toFixed(2)
+        Number(t.amount).toFixed(2)
       ].join(','))
     ].join('\n');
 
