@@ -486,9 +486,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         </>
       ) : pestanaActiva === 'ahorros' ? (
-        <SavingsGoals userId={clerkUser?.id || ''} />
+        clerkUser?.id ? <SavingsGoals userId={clerkUser.id} /> : null
       ) : pestanaActiva === 'banco' ? (
-        <ConexionBancaria userId={clerkUser?.id || ''} onTransaccionesImportadas={cargarTransacciones} />
+        clerkUser?.id ? <ConexionBancaria userId={clerkUser.id} onTransaccionesImportadas={cargarTransacciones} /> : null
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (
