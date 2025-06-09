@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { servicioSupabase } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
@@ -15,7 +14,6 @@ import TarjetaEstadistica from './dashboard/TarjetaEstadistica';
 import PestanasNavegacion from './dashboard/PestanasNavegacion';
 import FormularioTransaccion from './dashboard/FormularioTransaccion';
 import HistorialTransacciones from './dashboard/HistorialTransacciones';
-import GraficoBalanceMensual from './dashboard/GraficoBalanceMensual';
 
 interface PropiedadesTablero {
   usuario: User;
@@ -171,9 +169,6 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
             />
             
             <HistorialTransacciones transacciones={transaccionesUsuario} />
-            
-            {/* Gráfico de Balance Mensual movido debajo del historial */}
-            <GraficoBalanceMensual transacciones={transaccionesUsuario} />
           </div>
         );
       case 'ahorros':
