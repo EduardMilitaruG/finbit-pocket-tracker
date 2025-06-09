@@ -41,6 +41,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     if (!clerkUser?.id) return;
     
     try {
+      console.log('Cargando transacciones para usuario:', clerkUser.id);
       const transaccionesUsuario = await supabaseService.obtenerTransaccionesPorUsuario(clerkUser.id);
       setTransacciones(transaccionesUsuario);
     } catch (error) {
@@ -87,6 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setMensaje('');
 
     try {
+      console.log('Agregando transacción para usuario:', clerkUser.id);
       await supabaseService.agregarTransaccion(clerkUser.id, descripcion, parseFloat(cantidad), tipo);
       toast({
         title: "¡Éxito!",
@@ -488,7 +490,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       ) : pestanaActiva === 'ahorros' ? (
         clerkUser?.id ? <SavingsGoals userId={clerkUser.id} /> : null
       ) : pestanaActiva === 'banco' ? (
-        clerkUser?.id ? <ConexionBancaria userId={clerkUser.id} onTransaccionesImportadas={cargarTransacciones} /> : null
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+          <h3 className="text-2xl font-light text-gray-800 mb-6">Conexión Bancaria</h3>
+          <p className="text-gray-600 mb-4">Esta funcionalidad estará disponible próximamente.</p>
+        </div>
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (
