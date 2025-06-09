@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { servicioSupabase } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
@@ -15,7 +16,6 @@ import PestanasNavegacion from './dashboard/PestanasNavegacion';
 import FormularioTransaccion from './dashboard/FormularioTransaccion';
 import HistorialTransacciones from './dashboard/HistorialTransacciones';
 import GraficoBalanceMensual from './dashboard/GraficoBalanceMensual';
-import WidgetMonedas from './dashboard/WidgetMonedas';
 
 interface PropiedadesTablero {
   usuario: User;
@@ -170,10 +170,10 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
               userId={usuario.id}
             />
             
-            {/* Gráfico de Balance Mensual */}
-            <GraficoBalanceMensual transacciones={transaccionesUsuario} />
-            
             <HistorialTransacciones transacciones={transaccionesUsuario} />
+            
+            {/* Gráfico de Balance Mensual movido debajo del historial */}
+            <GraficoBalanceMensual transacciones={transaccionesUsuario} />
           </div>
         );
       case 'ahorros':
@@ -181,7 +181,7 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
       case 'banco':
         return <ConexionBancaria userId={usuario.id} onTransaccionesImportadas={manejarTransaccionesImportadas} />;
       case 'mercados':
-        return <WidgetMonedas />;
+        return <Mercados />;
       case 'perfil':
         return <Perfil user={usuario} onLogout={alCerrarSesion} />;
       default:
