@@ -5,34 +5,34 @@ import { LogIn, UserPlus, User as IconoUsuario, Eye, EyeOff } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 
 const FormularioAuth: React.FC = () => {
-  const [modoActual, setModoActual] = useState(true); // true para login, false para registro
-  const [credenciales, setCredenciales] = useState({
+  const [esLogin, setEsLogin] = useState(true);
+  const [datosFormulario, setDatosFormulario] = useState({
     email: '',
     password: '',
     nombreUsuario: ''
   });
-  const [procesando, setProcesando] = useState(false);
-  const [contrasenaVisible, setContrasenaVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
   const { toast } = useToast();
 
-  const procesarInicioSesion = async (e: React.FormEvent) => {
+  const manejarLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProcesando(true);
+    setEnviando(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: credenciales.email,
-        password: credenciales.password
+      const resultado = await supabase.auth.signInWithPassword({
+        email: datosFormulario.email,
+        password: datosFormulario.password
       });
 
-      if (error) {
-        const mensajeAmigable = error.message === 'Invalid login credentials' 
+      if (resultado.error) {
+        const mensaje = resultado.error.message === 'Invalid login credentials' 
           ? 'Email o contraseña incorrectos' 
-          : error.message;
+          : resultado.error.message;
         
         toast({
           title: "No se pudo iniciar sesión",
-          description: mensajeAmigable,
+          description: mensaje,
           variant: "destructive"
         });
       } else {
@@ -41,38 +41,38 @@ const FormularioAuth: React.FC = () => {
           description: "Sesión iniciada correctamente"
         });
       }
-    } catch (error) {
-      console.error('Intento de inicio de sesión falló:', error);
+    } catch (err) {
+      console.error('Error login:', err);
       toast({
         title: "Error",
         description: "Algo salió mal al intentar iniciar sesión",
         variant: "destructive"
       });
     } finally {
-      setProcesando(false);
+      setEnviando(false);
     }
   };
 
-  const procesarRegistro = async (e: React.FormEvent) => {
+  const manejarRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProcesando(true);
+    setEnviando(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: credenciales.email,
-        password: credenciales.password,
+      const resultado = await supabase.auth.signUp({
+        email: datosFormulario.email,
+        password: datosFormulario.password,
         options: {
           data: {
-            username: credenciales.nombreUsuario || credenciales.email.split('@')[0]
+            username: datosFormulario.nombreUsuario || datosFormulario.email.split('@')[0]
           },
           emailRedirectTo: `${window.location.origin}/`
         }
       });
 
-      if (error) {
+      if (resultado.error) {
         toast({
           title: "Error en el registro",
-          description: error.message,
+          description: resultado.error.message,
           variant: "destructive"
         });
       } else {
@@ -81,33 +81,32 @@ const FormularioAuth: React.FC = () => {
           description: "Revisa tu bandeja de entrada para confirmar tu cuenta"
         });
       }
-    } catch (error) {
-      console.error('Registro falló:', error);
+    } catch (err) {
+      console.error('Error registro:', err);
       toast({
         title: "Error",
         description: "No se pudo crear la cuenta",
         variant: "destructive"
       });
     } finally {
-      setProcesando(false);
+      setEnviando(false);
     }
   };
 
-  const actualizarCampo = (campo: string, valor: string) => {
-    setCredenciales(prev => ({ ...prev, [campo]: valor }));
+  const cambiarDato = (key: string, value: string) => {
+    setDatosFormulario(anterior => ({ ...anterior, [key]: value }));
   };
 
-  const alternarVisibilidadContrasena = () => {
-    setContrasenaVisible(!contrasenaVisible);
+  const togglePassword = () => {
+    setVerPassword(!verPassword);
   };
 
-  const cambiarModo = () => {
-    setModoActual(!modoActual);
+  const switchMode = () => {
+    setEsLogin(!esLogin);
   };
 
   return (
     <div className="max-w-md mx-auto">
-      {/* Encabezado de la App */}
       <div className="text-center mb-8">
         <h1 className="text-5xl font-light text-gray-800 mb-2 drop-shadow-lg">
           <span className="font-extralight">Fin</span>
@@ -118,26 +117,25 @@ const FormularioAuth: React.FC = () => {
         </p>
       </div>
 
-      {/* Formulario Principal */}
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-400 to-teal-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
-            {modoActual ? (
+            {esLogin ? (
               <LogIn className="w-8 h-8 text-white" />
             ) : (
               <UserPlus className="w-8 h-8 text-white" />
             )}
           </div>
           <h2 className="text-3xl font-light text-gray-800 mb-2">
-            {modoActual ? 'Accede a tu cuenta' : 'Crea tu cuenta'}
+            {esLogin ? 'Accede a tu cuenta' : 'Crea tu cuenta'}
           </h2>
           <p className="text-gray-600 font-light">
-            {modoActual ? 'Inicia sesión para continuar' : 'Únete a FinBit hoy'}
+            {esLogin ? 'Inicia sesión para continuar' : 'Únete a FinBit hoy'}
           </p>
         </div>
 
-        <form onSubmit={modoActual ? procesarInicioSesion : procesarRegistro} className="space-y-6">
-          {!modoActual && (
+        <form onSubmit={esLogin ? manejarLogin : manejarRegistro} className="space-y-6">
+          {!esLogin && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nombre de usuario (opcional)
@@ -146,8 +144,8 @@ const FormularioAuth: React.FC = () => {
                 <IconoUsuario className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  value={credenciales.nombreUsuario}
-                  onChange={(e) => actualizarCampo('nombreUsuario', e.target.value)}
+                  value={datosFormulario.nombreUsuario}
+                  onChange={(e) => cambiarDato('nombreUsuario', e.target.value)}
                   className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                   placeholder="Como quieres que te llamemos"
                 />
@@ -161,8 +159,8 @@ const FormularioAuth: React.FC = () => {
             </label>
             <input
               type="email"
-              value={credenciales.email}
-              onChange={(e) => actualizarCampo('email', e.target.value)}
+              value={datosFormulario.email}
+              onChange={(e) => cambiarDato('email', e.target.value)}
               className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="tu@correo.com"
               required
@@ -175,9 +173,9 @@ const FormularioAuth: React.FC = () => {
             </label>
             <div className="relative">
               <input
-                type={contrasenaVisible ? "text" : "password"}
-                value={credenciales.password}
-                onChange={(e) => actualizarCampo('password', e.target.value)}
+                type={verPassword ? "text" : "password"}
+                value={datosFormulario.password}
+                onChange={(e) => cambiarDato('password', e.target.value)}
                 className="w-full px-4 py-4 pr-12 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
                 placeholder="Tu contraseña segura"
                 required
@@ -185,34 +183,34 @@ const FormularioAuth: React.FC = () => {
               />
               <button
                 type="button"
-                onClick={alternarVisibilidadContrasena}
+                onClick={togglePassword}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {contrasenaVisible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {verPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={procesando}
+            disabled={enviando}
             className="w-full bg-gradient-to-r from-blue-500 to-teal-500 text-white py-4 px-6 rounded-2xl hover:from-blue-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            {procesando 
-              ? (modoActual ? 'Iniciando sesión...' : 'Creando cuenta...') 
-              : (modoActual ? 'Iniciar Sesión' : 'Crear Cuenta')
+            {enviando 
+              ? (esLogin ? 'Iniciando sesión...' : 'Creando cuenta...') 
+              : (esLogin ? 'Iniciar Sesión' : 'Crear Cuenta')
             }
           </button>
         </form>
 
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600 font-light">
-            {modoActual ? '¿Aún no tienes cuenta?' : '¿Ya tienes una cuenta?'}{' '}
+            {esLogin ? '¿Aún no tienes cuenta?' : '¿Ya tienes una cuenta?'}{' '}
             <button
-              onClick={cambiarModo}
+              onClick={switchMode}
               className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 hover:underline"
             >
-              {modoActual ? 'Créala aquí' : 'Inicia sesión'}
+              {esLogin ? 'Créala aquí' : 'Inicia sesión'}
             </button>
           </p>
         </div>

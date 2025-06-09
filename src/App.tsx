@@ -4,52 +4,49 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import FormularioAuth from './components/auth/FormularioAuth';
 import Tablero from './components/Tablero';
-import { User as UsuarioLocal } from './types/User';
+import { User as TipoUsuario } from './types/User';
 import { Toaster } from '@/components/ui/toaster';
 import './App.css';
 
 const App: React.FC = () => {
-  const [usuarioActual, setUsuarioActual] = useState<User | null>(null);
-  const [sesionUsuario, setSesionUsuario] = useState<Session | null>(null);
-  const [estaInicializando, setEstaInicializando] = useState(true);
+  const [usuario, setUsuario] = useState<User | null>(null);
+  const [sesion, setSesion] = useState<Session | null>(null);
+  const [cargandoInicial, setCargandoInicial] = useState(true);
 
   useEffect(() => {
-    // Configurar listener del estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (evento, sesion) => {
-        console.log('Estado de auth cambió:', evento, sesion);
-        setSesionUsuario(sesion);
-        setUsuarioActual(sesion?.user ?? null);
-        setEstaInicializando(false);
+      (evento, nuevaSesion) => {
+        console.log('Cambio auth:', evento, nuevaSesion);
+        setSesion(nuevaSesion);
+        setUsuario(nuevaSesion?.user ?? null);
+        setCargandoInicial(false);
       }
     );
 
-    // Verificar sesión existente
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSesionUsuario(session);
-      setUsuarioActual(session?.user ?? null);
-      setEstaInicializando(false);
+      setSesion(session);
+      setUsuario(session?.user ?? null);
+      setCargandoInicial(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Transformar usuario de Supabase a formato local
-  const usuarioTransformado: UsuarioLocal | null = usuarioActual ? {
-    id: usuarioActual.id,
-    username: usuarioActual.email?.split('@')[0] || 'Usuario',
-    password: '' // No necesario con Supabase
+  const usuarioLocal: TipoUsuario | null = usuario ? {
+    id: usuario.id,
+    username: usuario.email?.split('@')[0] || 'Usuario',
+    password: ''
   } : null;
 
-  const manejarCierreSesionUsuario = async () => {
-    console.log('Cerrando sesión de usuario...');
+  const cerrarSesion = async () => {
+    console.log('Cerrando sesión...');
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('Error logout:', error);
     }
   };
 
-  if (estaInicializando) {
+  if (cargandoInicial) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center">
         <div className="text-center">
@@ -66,11 +63,11 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
       <div className="container mx-auto px-4 py-8">
-        {!sesionUsuario ? (
+        {!sesion ? (
           <FormularioAuth />
         ) : (
-          usuarioTransformado && (
-            <Tablero usuario={usuarioTransformado} alCerrarSesion={manejarCierreSesionUsuario} />
+          usuarioLocal && (
+            <Tablero usuario={usuarioLocal} alCerrarSesion={cerrarSesion} />
           )
         )}
       </div>

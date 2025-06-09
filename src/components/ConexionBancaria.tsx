@@ -2,12 +2,12 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
-interface ConexionBancariaProps {
+interface PropsConexion {
   userId: string;
   onTransaccionesImportadas: (transacciones: any[]) => void;
 }
 
-const ConexionBancaria: React.FC<ConexionBancariaProps> = ({ userId, onTransaccionesImportadas }) => {
+const ConexionBancaria: React.FC<PropsConexion> = ({ userId, onTransaccionesImportadas }) => {
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
       <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">

@@ -2,7 +2,7 @@
 import React from 'react';
 import WidgetMonedas from './dashboard/WidgetMonedas';
 
-const Mercados: React.FC = () => {
+const PaginaMercados: React.FC = () => {
   return (
     <div className="space-y-6">
       <WidgetMonedas />
@@ -10,4 +10,4 @@ const Mercados: React.FC = () => {
   );
 };
 
-export default Mercados;
+export default PaginaMercados;
