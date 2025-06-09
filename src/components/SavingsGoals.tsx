@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabaseService } from '../services/SupabaseService';
+import { servicioSupabase } from '../services/SupabaseService';
 import { SavingsGoal } from '../types/User';
 import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,7 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
     if (!userId) return;
     
     try {
-      const objetivosUsuario = await supabaseService.obtenerObjetivosAhorroPorUsuario(userId);
+      const objetivosUsuario = await servicioSupabase.obtenerObjetivosAhorroPorUsuario(userId);
       setObjetivos(objetivosUsuario);
     } catch (error) {
       console.error('Error cargando objetivos de ahorro:', error);
@@ -49,7 +49,7 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
 
     try {
       const fechaLimiteTimestamp = fechaLimite ? new Date(fechaLimite).getTime() : undefined;
-      await supabaseService.agregarObjetivoAhorro(
+      await servicioSupabase.agregarObjetivoAhorro(
         userId,
         titulo,
         parseFloat(cantidadObjetivo),
@@ -83,7 +83,7 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
   const manejarActualizarCantidad = async (idObjetivo: string, cantidadActual: number, incremento: number) => {
     try {
       const nuevaCantidad = Math.max(0, cantidadActual + incremento);
-      await supabaseService.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
+      await servicioSupabase.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
       await cargarObjetivos();
       
       toast({

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction, SavingsGoal } from '../types/User';
 
@@ -148,7 +149,8 @@ class ServicioDatos {
       targetAmount: parseFloat(objetivo.cantidad_objetivo),
       currentAmount: parseFloat(objetivo.cantidad_actual),
       description: objetivo.descripcion || '',
-      deadline: objetivo.fecha_limite ? new Date(objetivo.fecha_limite).getTime() : undefined
+      deadline: objetivo.fecha_limite ? new Date(objetivo.fecha_limite).getTime() : undefined,
+      createdAt: new Date(objetivo.fecha_creacion).getTime()
     }));
   }
 

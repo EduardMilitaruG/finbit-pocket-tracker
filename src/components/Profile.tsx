@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { User } from '../types/User';
-import { supabaseService } from '../services/SupabaseService';
+import { servicioSupabase } from '../services/SupabaseService';
 import { LogOut, Trash2, Download, Upload, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +44,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     setCargando(true);
 
     try {
-      const transacciones = await supabaseService.obtenerTransaccionesPorUsuario(user.id);
+      const transacciones = await servicioSupabase.obtenerTransaccionesPorUsuario(user.id);
       
       if (transacciones.length === 0) {
         toast({
@@ -128,7 +127,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
           const tipo = valores[3] as 'Ingreso' | 'Gasto';
 
           if (descripcion && !isNaN(cantidad) && (tipo === 'Ingreso' || tipo === 'Gasto')) {
-            await supabaseService.agregarTransaccion(user.id, descripcion, cantidad, tipo);
+            await servicioSupabase.agregarTransaccion(user.id, descripcion, cantidad, tipo);
             contadorImportadas++;
           }
         }
