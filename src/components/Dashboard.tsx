@@ -25,10 +25,10 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Sparkles } from 'lucide-react';
-import { Profile } from './Profile';
-import { Markets } from './Markets';
-import { ConexionBancaria } from './ConexionBancaria';
-import { SavingsGoals } from './SavingsGoals';
+import Profile from './Profile';
+import Markets from './Markets';
+import ConexionBancaria from './ConexionBancaria';
+import SavingsGoals from './SavingsGoals';
 
 interface DashboardProps {
   user: User;
@@ -97,7 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         new Date(t.date).toLocaleDateString('es-ES'),
         `"${t.description}"`,
         t.type,
-        Number(t.amount).toFixed(2)
+        t.amount.toString()
       ].join(','))
     ].join('\n');
 
@@ -314,7 +314,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         )}
 
         {vistaActual === 'profile' && (
-          <Profile user={user} />
+          <Profile user={user} onLogout={onLogout} />
         )}
 
         {vistaActual === 'markets' && (
@@ -322,7 +322,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         )}
 
         {vistaActual === 'conexion' && (
-          <ConexionBancaria />
+          <ConexionBancaria userId={user.id} onTransaccionesImportadas={() => {}} />
         )}
 
         {vistaActual === 'savings' && (
