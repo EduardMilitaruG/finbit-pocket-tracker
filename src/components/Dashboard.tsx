@@ -7,7 +7,7 @@ import Profile from './Profile';
 import Markets from './Markets';
 import ConexionBancaria from './ConexionBancaria';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardProps {
   user: User;
@@ -29,20 +29,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   const { toast } = useToast();
-  const { user: clerkUser } = useUser();
 
   useEffect(() => {
-    if (clerkUser?.id) {
+    if (user?.id) {
       cargarTransacciones();
+      verificarPerfil();
     }
-  }, [clerkUser?.id]);
+  }, [user?.id]);
 
-  const cargarTransacciones = async () => {
-    if (!clerkUser?.id) return;
+  const verificarPerfil = async () => {
+    if (!user?.id) return;
     
     try {
-      console.log('Cargando transacciones para usuario:', clerkUser.id);
-      const transaccionesUsuario = await supabaseService.obtenerTransaccionesPorUsuario(clerkUser.id);
+      const perfil = await supabaseService.obtenerPerfil(user.id);
+      if (!perfil) {
+        // Crear perfil si no existe
+        await supabaseService.crearPerfil(user.id, user.username);
+      }
+    } catch (error) {
+      console.error('Error verificando perfil:', error);
+    }
+  };
+
+  const cargarTransacciones = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('Cargando transacciones para usuario:', user.id);
+      const transaccionesUsuario = await supabaseService.obtenerTransaccionesPorUsuario(user.id);
       setTransacciones(transaccionesUsuario);
     } catch (error) {
       console.error('Error cargando transacciones:', error);
@@ -80,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const manejarAgregarTransaccion = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validarFormulario() || !clerkUser?.id) {
+    if (!validarFormulario() || !user?.id) {
       return;
     }
 
@@ -88,8 +102,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setMensaje('');
 
     try {
-      console.log('Agregando transacción para usuario:', clerkUser.id);
-      await supabaseService.agregarTransaccion(clerkUser.id, descripcion, parseFloat(cantidad), tipo);
+      console.log('Agregando transacción para usuario:', user.id);
+      await supabaseService.agregarTransaccion(user.id, descripcion, parseFloat(cantidad), tipo);
       toast({
         title: "¡Éxito!",
         description: "Transacción agregada correctamente"
@@ -488,12 +502,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         </>
       ) : pestanaActiva === 'ahorros' ? (
-        clerkUser?.id ? <SavingsGoals userId={clerkUser.id} /> : null
+        user?.id ? <SavingsGoals userId={user.id} /> : null
       ) : pestanaActiva === 'banco' ? (
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
-          <h3 className="text-2xl font-light text-gray-800 mb-6">Conexión Bancaria</h3>
-          <p className="text-gray-600 mb-4">Esta funcionalidad estará disponible próximamente.</p>
-        </div>
+        <ConexionBancaria />
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (

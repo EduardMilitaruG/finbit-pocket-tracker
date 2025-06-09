@@ -10,6 +10,22 @@ class ServicioSupabase {
       .eq('id', userId)
       .single();
     
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      throw error;
+    }
+    return data;
+  }
+
+  async crearPerfil(userId: string, nombreUsuario: string) {
+    const { data, error } = await supabase
+      .from('perfiles')
+      .insert({
+        id: userId,
+        nombre_usuario: nombreUsuario
+      })
+      .select()
+      .single();
+
     if (error) throw error;
     return data;
   }

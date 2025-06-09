@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { User } from '../types/User';
 import { supabaseService } from '../services/SupabaseService';
 import { LogOut, Trash2, Download, Upload, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProfileProps {
   user: User;
@@ -13,7 +14,6 @@ interface ProfileProps {
 const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
   const [cargando, setCargando] = useState(false);
   const { toast } = useToast();
-  const { user: clerkUser } = useUser();
 
   const manejarResetearDatos = async () => {
     if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
@@ -40,12 +40,12 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
   };
 
   const manejarExportarCSV = async () => {
-    if (!clerkUser?.id) return;
+    if (!user?.id) return;
     
     setCargando(true);
 
     try {
-      const transacciones = await supabaseService.obtenerTransaccionesPorUsuario(clerkUser.id);
+      const transacciones = await supabaseService.obtenerTransaccionesPorUsuario(user.id);
       
       if (transacciones.length === 0) {
         toast({
@@ -95,7 +95,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
 
   const manejarImportarCSV = async (evento: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = evento.target.files?.[0];
-    if (!archivo || !clerkUser?.id) return;
+    if (!archivo || !user?.id) return;
 
     setCargando(true);
 
@@ -128,7 +128,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
           const tipo = valores[3] as 'Ingreso' | 'Gasto';
 
           if (descripcion && !isNaN(cantidad) && (tipo === 'Ingreso' || tipo === 'Gasto')) {
-            await supabaseService.agregarTransaccion(clerkUser.id, descripcion, cantidad, tipo);
+            await supabaseService.agregarTransaccion(user.id, descripcion, cantidad, tipo);
             contadorImportadas++;
           }
         }
@@ -153,6 +153,32 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     lector.readAsText(archivo);
   };
 
+  const manejarCerrarSesion = async () => {
+    setCargando(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error cerrando sesión:', error);
+        toast({
+          title: "Error",
+          description: "Error al cerrar sesión",
+          variant: "destructive"
+        });
+      } else {
+        onLogout();
+      }
+    } catch (error) {
+      console.error('Error cerrando sesión:', error);
+      toast({
+        title: "Error",
+        description: "Error al cerrar sesión",
+        variant: "destructive"
+      });
+    } finally {
+      setCargando(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
@@ -165,7 +191,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
         
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
           <p className="text-lg font-medium text-gray-800 mb-2">Usuario: {user.username}</p>
-          <p className="text-sm text-gray-600">ID de Usuario: {clerkUser?.id}</p>
+          <p className="text-sm text-gray-600">ID de Usuario: {user.id}</p>
         </div>
       </div>
 
@@ -204,11 +230,12 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
           </button>
 
           <button
-            onClick={onLogout}
-            className="flex items-center gap-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-4 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            onClick={manejarCerrarSesion}
+            disabled={cargando}
+            className="flex items-center gap-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-4 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 disabled:opacity-50 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <LogOut className="w-5 h-5" />
-            Cerrar Sesión
+            {cargando ? 'Cerrando...' : 'Cerrar Sesión'}
           </button>
         </div>
       </div>
