@@ -1,8 +1,9 @@
-
 import React, { useState } from 'react';
-import { User, Transaction } from '../types/User';
-import { indexedDBService } from '../services/IndexedDBService';
+import { User } from '../types/User';
+import { supabaseService } from '../services/SupabaseService';
 import { LogOut, Trash2, Download, Upload, User as UserIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@clerk/clerk-react';
 
 interface ProfileProps {
   user: User;
@@ -11,7 +12,8 @@ interface ProfileProps {
 
 const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
   const [cargando, setCargando] = useState(false);
-  const [mensaje, setMensaje] = useState('');
+  const { toast } = useToast();
+  const { user: clerkUser } = useUser();
 
   const manejarResetearDatos = async () => {
     if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
@@ -19,30 +21,38 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     }
 
     setCargando(true);
-    setMensaje('');
 
     try {
-      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
-      const objetivosAhorro = await indexedDBService.obtenerObjetivosAhorroPorUsuario(user.id);
-      
-      setMensaje('Funcionalidad de reset en desarrollo. Por ahora, puedes cerrar sesión y crear una nueva cuenta.');
+      toast({
+        title: "Información",
+        description: "La funcionalidad de reset está en desarrollo. Actualmente solo puedes cerrar sesión.",
+      });
     } catch (error) {
       console.error('Error reseteando datos:', error);
-      setMensaje('Error al resetear los datos');
+      toast({
+        title: "Error",
+        description: "Error al resetear los datos",
+        variant: "destructive"
+      });
     } finally {
       setCargando(false);
     }
   };
 
   const manejarExportarCSV = async () => {
+    if (!clerkUser?.id) return;
+    
     setCargando(true);
-    setMensaje('');
 
     try {
-      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      const transacciones = await supabaseService.obtenerTransaccionesPorUsuario(clerkUser.id);
       
       if (transacciones.length === 0) {
-        setMensaje('No hay transacciones para exportar');
+        toast({
+          title: "Sin datos",
+          description: "No hay transacciones para exportar",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -67,21 +77,27 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
       enlace.click();
       document.body.removeChild(enlace);
 
-      setMensaje('¡Transacciones exportadas exitosamente!');
+      toast({
+        title: "¡Exportado!",
+        description: "Transacciones exportadas exitosamente"
+      });
     } catch (error) {
       console.error('Error exportando CSV:', error);
-      setMensaje('Error al exportar las transacciones');
+      toast({
+        title: "Error",
+        description: "Error al exportar las transacciones",
+        variant: "destructive"
+      });
     } finally {
       setCargando(false);
     }
   };
 
-  const manejarImportarCSV = (evento: React.ChangeEvent<HTMLInputElement>) => {
+  const manejarImportarCSV = async (evento: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = evento.target.files?.[0];
-    if (!archivo) return;
+    if (!archivo || !clerkUser?.id) return;
 
     setCargando(true);
-    setMensaje('');
 
     const lector = new FileReader();
     lector.onload = async (e) => {
@@ -91,7 +107,11 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
         const encabezados = lineas[0].split(',');
         
         if (encabezados.length < 4 || !encabezados.includes('Descripción') || !encabezados.includes('Cantidad') || !encabezados.includes('Tipo')) {
-          setMensaje('Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo');
+          toast({
+            title: "Error",
+            description: "Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo",
+            variant: "destructive"
+          });
           return;
         }
 
@@ -108,15 +128,22 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
           const tipo = valores[3] as 'Ingreso' | 'Gasto';
 
           if (descripcion && !isNaN(cantidad) && (tipo === 'Ingreso' || tipo === 'Gasto')) {
-            await indexedDBService.agregarTransaccion(user.id, descripcion, cantidad, tipo);
+            await supabaseService.agregarTransaccion(clerkUser.id, descripcion, cantidad, tipo);
             contadorImportadas++;
           }
         }
 
-        setMensaje(`¡${contadorImportadas} transacciones importadas exitosamente!`);
+        toast({
+          title: "¡Importado!",
+          description: `${contadorImportadas} transacciones importadas exitosamente`
+        });
       } catch (error) {
         console.error('Error importando CSV:', error);
-        setMensaje('Error al importar las transacciones');
+        toast({
+          title: "Error",
+          description: "Error al importar las transacciones",
+          variant: "destructive"
+        });
       } finally {
         setCargando(false);
         evento.target.value = '';
@@ -138,7 +165,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
         
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
           <p className="text-lg font-medium text-gray-800 mb-2">Usuario: {user.username}</p>
-          <p className="text-sm text-gray-600">ID de Usuario: #{user.id}</p>
+          <p className="text-sm text-gray-600">ID de Usuario: {clerkUser?.id}</p>
         </div>
       </div>
 
@@ -184,16 +211,6 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
             Cerrar Sesión
           </button>
         </div>
-
-        {mensaje && (
-          <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-            mensaje.includes('exitosamente') || mensaje.includes('importadas')
-              ? 'bg-green-100/80 text-green-700 border border-green-200' 
-              : 'bg-red-100/80 text-red-700 border border-red-200'
-          }`}>
-            {mensaje}
-          </div>
-        )}
       </div>
 
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">

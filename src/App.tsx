@@ -12,7 +12,7 @@ const App: React.FC = () => {
 
   // Convertir usuario de Clerk al formato de User local
   const userData: User | null = user ? {
-    id: parseInt(user.id.slice(-6), 16), // Generar ID numérico a partir del ID de Clerk
+    id: user.id, // Usar el ID real de Clerk para Supabase
     username: user.username || user.emailAddresses[0]?.emailAddress || 'Usuario',
     password: '' // No necesario con Clerk
   } : null;

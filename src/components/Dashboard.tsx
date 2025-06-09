@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { indexedDBService } from '../services/IndexedDBService';
+import { supabaseService } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
 import { LogOut, Plus, TrendingUp, TrendingDown, DollarSign, Target, User as UserIcon, BarChart3, CreditCard, Filter, Download } from 'lucide-react';
 import SavingsGoals from './SavingsGoals';
@@ -7,6 +7,7 @@ import Profile from './Profile';
 import Markets from './Markets';
 import ConexionBancaria from './ConexionBancaria';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@clerk/clerk-react';
 
 interface DashboardProps {
   user: User;
@@ -28,17 +29,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   const { toast } = useToast();
+  const { user: clerkUser } = useUser();
 
   useEffect(() => {
-    cargarTransacciones();
-  }, [user.id]);
+    if (clerkUser?.id) {
+      cargarTransacciones();
+    }
+  }, [clerkUser?.id]);
 
   const cargarTransacciones = async () => {
+    if (!clerkUser?.id) return;
+    
     try {
-      const transaccionesUsuario = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      const transaccionesUsuario = await supabaseService.obtenerTransaccionesPorUsuario(clerkUser.id);
       setTransacciones(transaccionesUsuario);
     } catch (error) {
       console.error('Error cargando transacciones:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las transacciones",
+        variant: "destructive"
+      });
     }
   };
 
@@ -68,7 +79,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const manejarAgregarTransaccion = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validarFormulario()) {
+    if (!validarFormulario() || !clerkUser?.id) {
       return;
     }
 
@@ -76,7 +87,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setMensaje('');
 
     try {
-      await indexedDBService.agregarTransaccion(user.id, descripcion, parseFloat(cantidad), tipo);
+      await supabaseService.agregarTransaccion(clerkUser.id, descripcion, parseFloat(cantidad), tipo);
       toast({
         title: "¡Éxito!",
         description: "Transacción agregada correctamente"
@@ -475,9 +486,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         </>
       ) : pestanaActiva === 'ahorros' ? (
-        <SavingsGoals userId={user.id} />
+        <SavingsGoals userId={clerkUser?.id || ''} />
       ) : pestanaActiva === 'banco' ? (
-        <ConexionBancaria userId={user.id} onTransaccionesImportadas={cargarTransacciones} />
+        <ConexionBancaria userId={clerkUser?.id || ''} onTransaccionesImportadas={cargarTransacciones} />
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (

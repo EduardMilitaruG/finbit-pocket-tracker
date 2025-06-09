@@ -1,13 +1,13 @@
 
 export interface User {
-  id: number;
+  id: string; // Cambiar a string para compatibilidad con Supabase/Clerk
   username: string;
   password: string;
 }
 
 export interface Transaction {
-  id: number;
-  userId: number;
+  id: string; // Cambiar a string para compatibilidad con Supabase
+  userId?: string; // Opcional ya que ahora manejamos esto en el servicio
   description: string;
   amount: number;
   type: 'Ingreso' | 'Gasto';
@@ -15,8 +15,8 @@ export interface Transaction {
 }
 
 export interface SavingsGoal {
-  id: number;
-  userId: number;
+  id: string; // Cambiar a string para compatibilidad con Supabase
+  userId?: string; // Opcional ya que ahora manejamos esto en el servicio
   title: string;
   targetAmount: number;
   currentAmount: number;

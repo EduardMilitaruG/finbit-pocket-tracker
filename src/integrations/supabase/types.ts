@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      objetivos_ahorro: {
+        Row: {
+          cantidad_actual: number
+          cantidad_objetivo: number
+          descripcion: string | null
+          fecha_creacion: string
+          fecha_limite: string | null
+          id: string
+          titulo: string
+          usuario_id: string
+        }
+        Insert: {
+          cantidad_actual?: number
+          cantidad_objetivo: number
+          descripcion?: string | null
+          fecha_creacion?: string
+          fecha_limite?: string | null
+          id?: string
+          titulo: string
+          usuario_id: string
+        }
+        Update: {
+          cantidad_actual?: number
+          cantidad_objetivo?: number
+          descripcion?: string | null
+          fecha_creacion?: string
+          fecha_limite?: string | null
+          id?: string
+          titulo?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      perfiles: {
+        Row: {
+          fecha_creacion: string
+          id: string
+          nombre_usuario: string
+        }
+        Insert: {
+          fecha_creacion?: string
+          id: string
+          nombre_usuario: string
+        }
+        Update: {
+          fecha_creacion?: string
+          id?: string
+          nombre_usuario?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -57,6 +108,36 @@ export type Database = {
           target_amount?: number
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      transacciones: {
+        Row: {
+          cantidad: number
+          descripcion: string
+          fecha: string
+          fecha_creacion: string
+          id: string
+          tipo: string
+          usuario_id: string
+        }
+        Insert: {
+          cantidad: number
+          descripcion: string
+          fecha?: string
+          fecha_creacion?: string
+          id?: string
+          tipo: string
+          usuario_id: string
+        }
+        Update: {
+          cantidad?: number
+          descripcion?: string
+          fecha?: string
+          fecha_creacion?: string
+          id?: string
+          tipo?: string
+          usuario_id?: string
         }
         Relationships: []
       }

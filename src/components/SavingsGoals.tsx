@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { indexedDBService } from '../services/IndexedDBService';
+import { supabaseService } from '../services/SupabaseService';
 import { SavingsGoal } from '../types/User';
 import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface SavingsGoalsProps {
-  userId: number;
+  userId: string;
 }
 
 const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
@@ -15,30 +15,41 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
   const [cantidadObjetivo, setCantidadObjetivo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fechaLimite, setFechaLimite] = useState('');
-  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
 
+  const { toast } = useToast();
+
   useEffect(() => {
-    cargarObjetivos();
+    if (userId) {
+      cargarObjetivos();
+    }
   }, [userId]);
 
   const cargarObjetivos = async () => {
+    if (!userId) return;
+    
     try {
-      const objetivosUsuario = await indexedDBService.obtenerObjetivosAhorroPorUsuario(userId);
+      const objetivosUsuario = await supabaseService.obtenerObjetivosAhorroPorUsuario(userId);
       setObjetivos(objetivosUsuario);
     } catch (error) {
       console.error('Error cargando objetivos de ahorro:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los objetivos de ahorro",
+        variant: "destructive"
+      });
     }
   };
 
   const manejarAgregarObjetivo = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) return;
+    
     setCargando(true);
-    setMensaje('');
 
     try {
       const fechaLimiteTimestamp = fechaLimite ? new Date(fechaLimite).getTime() : undefined;
-      await indexedDBService.agregarObjetivoAhorro(
+      await supabaseService.agregarObjetivoAhorro(
         userId,
         titulo,
         parseFloat(cantidadObjetivo),
@@ -46,7 +57,11 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
         fechaLimiteTimestamp
       );
       
-      setMensaje('¡Objetivo de ahorro creado exitosamente!');
+      toast({
+        title: "¡Éxito!",
+        description: "Objetivo de ahorro creado correctamente"
+      });
+      
       setTitulo('');
       setCantidadObjetivo('');
       setDescripcion('');
@@ -55,19 +70,33 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
       await cargarObjetivos();
     } catch (error) {
       console.error('Error agregando objetivo de ahorro:', error);
-      setMensaje('Error al crear objetivo de ahorro');
+      toast({
+        title: "Error",
+        description: "No se pudo crear el objetivo de ahorro",
+        variant: "destructive"
+      });
     } finally {
       setCargando(false);
     }
   };
 
-  const manejarActualizarCantidad = async (idObjetivo: number, cantidadActual: number, incremento: number) => {
+  const manejarActualizarCantidad = async (idObjetivo: string, cantidadActual: number, incremento: number) => {
     try {
       const nuevaCantidad = Math.max(0, cantidadActual + incremento);
-      await indexedDBService.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
+      await supabaseService.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
       await cargarObjetivos();
+      
+      toast({
+        title: "¡Actualizado!",
+        description: "Cantidad actualizada correctamente"
+      });
     } catch (error) {
       console.error('Error actualizando objetivo de ahorro:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el objetivo",
+        variant: "destructive"
+      });
     }
   };
 
@@ -176,16 +205,6 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
               </button>
             </div>
           </form>
-
-          {mensaje && (
-            <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-              mensaje.includes('exitosamente') 
-                ? 'bg-green-100/80 text-green-700 border border-green-200' 
-                : 'bg-red-100/80 text-red-700 border border-red-200'
-            }`}>
-              {mensaje}
-            </div>
-          )}
         </div>
       )}
 
