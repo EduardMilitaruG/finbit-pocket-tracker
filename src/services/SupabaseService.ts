@@ -62,7 +62,10 @@ export class SupabaseService {
       .order('date', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(transaction => ({
+      ...transaction,
+      type: transaction.type as 'Ingreso' | 'Gasto'
+    }));
   }
 
   async addTransaction(description: string, amount: number, type: 'Ingreso' | 'Gasto'): Promise<Transaction> {
@@ -82,7 +85,10 @@ export class SupabaseService {
       .single();
 
     if (error) throw error;
-    return data;
+    return {
+      ...data,
+      type: data.type as 'Ingreso' | 'Gasto'
+    };
   }
 
   // Savings goals methods

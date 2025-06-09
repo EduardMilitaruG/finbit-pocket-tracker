@@ -198,16 +198,6 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
               </button>
             </div>
           </form>
-
-          {mensaje && (
-            <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-              mensaje.includes('exitosamente') 
-                ? 'bg-green-100/80 text-green-700 border border-green-200' 
-                : 'bg-red-100/80 text-red-700 border border-red-200'
-            }`}>
-              {mensaje}
-            </div>
-          )}
         </div>
       )}
 
@@ -242,8 +232,8 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
 
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>€{objetivo.current_amount.toFixed(2)}</span>
-                    <span>€{objetivo.target_amount.toFixed(2)}</span>
+                    <span>€{Number(objetivo.current_amount).toFixed(2)}</span>
+                    <span>€{Number(objetivo.target_amount).toFixed(2)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 

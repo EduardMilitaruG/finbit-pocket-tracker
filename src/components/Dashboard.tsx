@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabaseService } from '../services/SupabaseService';
 import { User, Transaction } from '../types/User';
@@ -149,21 +150,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const calcularBalance = () => {
     return transacciones.reduce((balance, transaccion) => {
       return transaccion.type === 'Ingreso' 
-        ? balance + transaccion.amount 
-        : balance - transaccion.amount;
+        ? balance + Number(transaccion.amount) 
+        : balance - Number(transaccion.amount);
     }, 0);
   };
 
   const obtenerTotalIngresos = () => {
     return transacciones
       .filter(t => t.type === 'Ingreso')
-      .reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + Number(t.amount), 0);
   };
 
   const obtenerTotalGastos = () => {
     return transacciones
       .filter(t => t.type === 'Gasto')
-      .reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + Number(t.amount), 0);
   };
 
   const balance = calcularBalance();
@@ -448,7 +449,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   </thead>
                   <tbody>
                     {transaccionesFiltradas
-                      .sort((a, b) => b.date - a.date)
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .map((transaccion) => (
                         <tr key={transaccion.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
                           <td className="py-4 px-4 text-sm text-gray-600 font-light">
@@ -467,7 +468,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                           <td className={`py-4 px-4 text-sm text-right font-medium ${
                             transaccion.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {transaccion.type === 'Ingreso' ? '+' : '-'}€{transaccion.amount.toFixed(2)}
+                            {transaccion.type === 'Ingreso' ? '+' : '-'}€{Number(transaccion.amount).toFixed(2)}
                           </td>
                         </tr>
                       ))}

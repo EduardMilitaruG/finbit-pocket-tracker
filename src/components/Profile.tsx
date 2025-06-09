@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { User } from '../types/User';
 import { supabaseService } from '../services/SupabaseService';
-import { LogOut, Download, Upload, User as UserIcon } from 'lucide-react';
+import { LogOut, Download, Upload, User as UserIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProfileProps {
@@ -125,6 +126,31 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     lector.readAsText(archivo);
   };
 
+  const manejarResetearDatos = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setCargando(true);
+    try {
+      // Aquí podrías implementar una función para eliminar todos los datos del usuario
+      toast({
+        title: "Funcionalidad pendiente",
+        description: "La función de resetear datos estará disponible próximamente",
+        variant: "destructive"
+      });
+    } catch (error) {
+      console.error('Error reseteando datos:', error);
+      toast({
+        title: "Error",
+        description: "Error al resetear los datos",
+        variant: "destructive"
+      });
+    } finally {
+      setCargando(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
@@ -184,16 +210,6 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
             Cerrar Sesión
           </button>
         </div>
-
-        {mensaje && (
-          <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
-            mensaje.includes('exitosamente') || mensaje.includes('importadas')
-              ? 'bg-green-100/80 text-green-700 border border-green-200' 
-              : 'bg-red-100/80 text-red-700 border border-red-200'
-          }`}>
-            {mensaje}
-          </div>
-        )}
       </div>
 
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
