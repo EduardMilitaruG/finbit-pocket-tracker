@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
-import { supabaseService } from '../services/SupabaseService';
+import React, { useState, useEffect } from 'react';
+import { indexedDBService } from '../services/IndexedDBService';
 import { User } from '../types/User';
-import { LogIn, User as UserIcon, Mail } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { LogIn, User as UserIcon } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (usuario: User) => void;
@@ -11,37 +10,67 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [usuario, setUsuario] = useState('');
+  const [contrasena, setContrasena] = useState('');
+  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
-  const { toast } = useToast();
+  const [inicializando, setInicializando] = useState(true);
+
+  useEffect(() => {
+    // Inicializar la base de datos al cargar el componente
+    const inicializarBD = async () => {
+      try {
+        console.log('Inicializando base de datos...');
+        await indexedDBService.inicializar();
+        console.log('Base de datos inicializada correctamente');
+        setInicializando(false);
+      } catch (error) {
+        console.error('Error inicializando base de datos:', error);
+        setMensaje('Error inicializando la aplicación. Recargue la página.');
+        setInicializando(false);
+      }
+    };
+
+    inicializarBD();
+  }, []);
 
   const manejarLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
+    setMensaje('');
 
     try {
-      await supabaseService.signIn(email, password);
-      const user = await supabaseService.getCurrentUser();
-      
-      if (user) {
-        toast({
-          title: "¡Bienvenido!",
-          description: "Inicio de sesión exitoso"
-        });
-        onLogin(user);
+      console.log('Intentando login para usuario:', usuario);
+      const datosUsuario = await indexedDBService.obtenerUsuario(usuario, contrasena);
+      if (datosUsuario) {
+        console.log('Login exitoso para usuario:', datosUsuario);
+        setMensaje('¡Inicio de sesión exitoso!');
+        onLogin(datosUsuario);
+      } else {
+        console.log('Usuario o contraseña incorrectos');
+        setMensaje('Usuario o contraseña incorrectos');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error en login:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Usuario o contraseña incorrectos",
-        variant: "destructive"
-      });
+      setMensaje('Error al iniciar sesión. Intente nuevamente.');
     } finally {
       setCargando(false);
     }
   };
+
+  if (inicializando) {
+    return (
+      <div className="max-w-md mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-400 to-teal-500 rounded-full flex items-center justify-center mb-6 shadow-lg animate-pulse">
+            <LogIn className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-light text-gray-800 mb-2">Inicializando...</h2>
+          <p className="text-gray-600 font-light">Preparando la aplicación</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
@@ -56,16 +85,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
       <form onSubmit={manejarLogin} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email
+            Usuario
           </label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
-              placeholder="tu@email.com"
+              placeholder="Ingresa tu usuario"
               required
             />
           </div>
@@ -77,8 +106,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
           </label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={contrasena}
+            onChange={(e) => setContrasena(e.target.value)}
             className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             placeholder="Ingresa tu contraseña"
             required
@@ -93,6 +122,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
           {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
         </button>
       </form>
+
+      {mensaje && (
+        <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
+          mensaje.includes('exitoso') 
+            ? 'bg-green-100/80 text-green-700 border border-green-200' 
+            : 'bg-red-100/80 text-red-700 border border-red-200'
+        }`}>
+          {mensaje}
+        </div>
+      )}
 
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-600 font-light">

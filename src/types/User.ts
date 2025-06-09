@@ -1,28 +1,26 @@
 
 export interface User {
-  id: string;
+  id: number;
   username: string;
-  email?: string;
-  created_at?: string;
+  password: string;
 }
 
 export interface Transaction {
-  id: string;
-  user_id: string;
+  id: number;
+  userId: number;
   description: string;
   amount: number;
   type: 'Ingreso' | 'Gasto';
-  date: string;
-  created_at?: string;
+  date: number;
 }
 
 export interface SavingsGoal {
-  id: string;
-  user_id: string;
+  id: number;
+  userId: number;
   title: string;
-  target_amount: number;
-  current_amount: number;
+  targetAmount: number;
+  currentAmount: number;
   description?: string;
-  deadline?: string;
-  created_at?: string;
+  deadline?: number;
+  createdAt: number;
 }

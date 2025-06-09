@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { User } from '../types/User';
-import { supabaseService } from '../services/SupabaseService';
-import { LogOut, Download, Upload, User as UserIcon, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { User, Transaction } from '../types/User';
+import { indexedDBService } from '../services/IndexedDBService';
+import { LogOut, Trash2, Download, Upload, User as UserIcon } from 'lucide-react';
 
 interface ProfileProps {
   user: User;
@@ -12,20 +11,38 @@ interface ProfileProps {
 
 const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
   const [cargando, setCargando] = useState(false);
-  const { toast } = useToast();
+  const [mensaje, setMensaje] = useState('');
+
+  const manejarResetearDatos = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setCargando(true);
+    setMensaje('');
+
+    try {
+      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
+      const objetivosAhorro = await indexedDBService.obtenerObjetivosAhorroPorUsuario(user.id);
+      
+      setMensaje('Funcionalidad de reset en desarrollo. Por ahora, puedes cerrar sesión y crear una nueva cuenta.');
+    } catch (error) {
+      console.error('Error reseteando datos:', error);
+      setMensaje('Error al resetear los datos');
+    } finally {
+      setCargando(false);
+    }
+  };
 
   const manejarExportarCSV = async () => {
     setCargando(true);
+    setMensaje('');
 
     try {
-      const transacciones = await supabaseService.getTransactions(user.id);
+      const transacciones = await indexedDBService.obtenerTransaccionesPorUsuario(user.id);
       
       if (transacciones.length === 0) {
-        toast({
-          title: "Sin datos",
-          description: "No hay transacciones para exportar",
-          variant: "destructive"
-        });
+        setMensaje('No hay transacciones para exportar');
         return;
       }
 
@@ -50,17 +67,10 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
       enlace.click();
       document.body.removeChild(enlace);
 
-      toast({
-        title: "¡Exportado!",
-        description: "Transacciones exportadas exitosamente"
-      });
+      setMensaje('¡Transacciones exportadas exitosamente!');
     } catch (error) {
       console.error('Error exportando CSV:', error);
-      toast({
-        title: "Error",
-        description: "Error al exportar las transacciones",
-        variant: "destructive"
-      });
+      setMensaje('Error al exportar las transacciones');
     } finally {
       setCargando(false);
     }
@@ -71,6 +81,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     if (!archivo) return;
 
     setCargando(true);
+    setMensaje('');
 
     const lector = new FileReader();
     lector.onload = async (e) => {
@@ -80,11 +91,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
         const encabezados = lineas[0].split(',');
         
         if (encabezados.length < 4 || !encabezados.includes('Descripción') || !encabezados.includes('Cantidad') || !encabezados.includes('Tipo')) {
-          toast({
-            title: "Error",
-            description: "Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo",
-            variant: "destructive"
-          });
+          setMensaje('Formato de CSV inválido. Debe tener columnas: Fecha, Descripción, Cantidad, Tipo');
           return;
         }
 
@@ -101,22 +108,15 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
           const tipo = valores[3] as 'Ingreso' | 'Gasto';
 
           if (descripcion && !isNaN(cantidad) && (tipo === 'Ingreso' || tipo === 'Gasto')) {
-            await supabaseService.addTransaction(descripcion, cantidad, tipo);
+            await indexedDBService.agregarTransaccion(user.id, descripcion, cantidad, tipo);
             contadorImportadas++;
           }
         }
 
-        toast({
-          title: "¡Importado!",
-          description: `${contadorImportadas} transacciones importadas exitosamente`
-        });
+        setMensaje(`¡${contadorImportadas} transacciones importadas exitosamente!`);
       } catch (error) {
         console.error('Error importando CSV:', error);
-        toast({
-          title: "Error",
-          description: "Error al importar las transacciones",
-          variant: "destructive"
-        });
+        setMensaje('Error al importar las transacciones');
       } finally {
         setCargando(false);
         evento.target.value = '';
@@ -124,31 +124,6 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
     };
 
     lector.readAsText(archivo);
-  };
-
-  const manejarResetearDatos = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar todos tus datos? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    setCargando(true);
-    try {
-      // Aquí podrías implementar una función para eliminar todos los datos del usuario
-      toast({
-        title: "Funcionalidad pendiente",
-        description: "La función de resetear datos estará disponible próximamente",
-        variant: "destructive"
-      });
-    } catch (error) {
-      console.error('Error reseteando datos:', error);
-      toast({
-        title: "Error",
-        description: "Error al resetear los datos",
-        variant: "destructive"
-      });
-    } finally {
-      setCargando(false);
-    }
   };
 
   return (
@@ -163,8 +138,7 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
         
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
           <p className="text-lg font-medium text-gray-800 mb-2">Usuario: {user.username}</p>
-          <p className="text-sm text-gray-600 mb-2">Email: {user.email}</p>
-          <p className="text-sm text-gray-600">ID de Usuario: {user.id}</p>
+          <p className="text-sm text-gray-600">ID de Usuario: #{user.id}</p>
         </div>
       </div>
 
@@ -210,6 +184,16 @@ const Perfil: React.FC<ProfileProps> = ({ user, onLogout }) => {
             Cerrar Sesión
           </button>
         </div>
+
+        {mensaje && (
+          <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
+            mensaje.includes('exitosamente') || mensaje.includes('importadas')
+              ? 'bg-green-100/80 text-green-700 border border-green-200' 
+              : 'bg-red-100/80 text-red-700 border border-red-200'
+          }`}>
+            {mensaje}
+          </div>
+        )}
       </div>
 
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">

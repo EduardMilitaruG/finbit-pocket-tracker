@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabaseService } from '../services/SupabaseService';
+import { indexedDBService } from '../services/IndexedDBService';
 import { SavingsGoal } from '../types/User';
 import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface SavingsGoalsProps {
-  userId: string;
+  userId: number;
 }
 
 const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
@@ -16,9 +15,8 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
   const [cantidadObjetivo, setCantidadObjetivo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fechaLimite, setFechaLimite] = useState('');
+  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
-
-  const { toast } = useToast();
 
   useEffect(() => {
     cargarObjetivos();
@@ -26,35 +24,29 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
 
   const cargarObjetivos = async () => {
     try {
-      const objetivosUsuario = await supabaseService.getSavingsGoals(userId);
+      const objetivosUsuario = await indexedDBService.obtenerObjetivosAhorroPorUsuario(userId);
       setObjetivos(objetivosUsuario);
     } catch (error) {
       console.error('Error cargando objetivos de ahorro:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los objetivos de ahorro",
-        variant: "destructive"
-      });
     }
   };
 
   const manejarAgregarObjetivo = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
+    setMensaje('');
 
     try {
-      await supabaseService.addSavingsGoal(
+      const fechaLimiteTimestamp = fechaLimite ? new Date(fechaLimite).getTime() : undefined;
+      await indexedDBService.agregarObjetivoAhorro(
+        userId,
         titulo,
         parseFloat(cantidadObjetivo),
         descripcion || undefined,
-        fechaLimite || undefined
+        fechaLimiteTimestamp
       );
       
-      toast({
-        title: "¡Éxito!",
-        description: "Objetivo de ahorro creado exitosamente"
-      });
-      
+      setMensaje('¡Objetivo de ahorro creado exitosamente!');
       setTitulo('');
       setCantidadObjetivo('');
       setDescripcion('');
@@ -63,33 +55,19 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
       await cargarObjetivos();
     } catch (error) {
       console.error('Error agregando objetivo de ahorro:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el objetivo de ahorro",
-        variant: "destructive"
-      });
+      setMensaje('Error al crear objetivo de ahorro');
     } finally {
       setCargando(false);
     }
   };
 
-  const manejarActualizarCantidad = async (idObjetivo: string, cantidadActual: number, incremento: number) => {
+  const manejarActualizarCantidad = async (idObjetivo: number, cantidadActual: number, incremento: number) => {
     try {
       const nuevaCantidad = Math.max(0, cantidadActual + incremento);
-      await supabaseService.updateSavingsGoalAmount(idObjetivo, nuevaCantidad);
+      await indexedDBService.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
       await cargarObjetivos();
-      
-      toast({
-        title: "¡Actualizado!",
-        description: `Cantidad ${incremento > 0 ? 'añadida' : 'reducida'} correctamente`
-      });
     } catch (error) {
       console.error('Error actualizando objetivo de ahorro:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el objetivo",
-        variant: "destructive"
-      });
     }
   };
 
@@ -198,6 +176,16 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
               </button>
             </div>
           </form>
+
+          {mensaje && (
+            <div className={`mt-6 p-4 rounded-2xl text-sm font-medium ${
+              mensaje.includes('exitosamente') 
+                ? 'bg-green-100/80 text-green-700 border border-green-200' 
+                : 'bg-red-100/80 text-red-700 border border-red-200'
+            }`}>
+              {mensaje}
+            </div>
+          )}
         </div>
       )}
 
@@ -211,7 +199,7 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
           </div>
         ) : (
           objetivos.map((objetivo) => {
-            const progreso = obtenerPorcentajeProgreso(objetivo.current_amount, objetivo.target_amount);
+            const progreso = obtenerPorcentajeProgreso(objetivo.currentAmount, objetivo.targetAmount);
             const completado = progreso >= 100;
             
             return (
@@ -232,8 +220,8 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
 
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>€{Number(objetivo.current_amount).toFixed(2)}</span>
-                    <span>€{Number(objetivo.target_amount).toFixed(2)}</span>
+                    <span>€{objetivo.currentAmount.toFixed(2)}</span>
+                    <span>€{objetivo.targetAmount.toFixed(2)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 
@@ -263,20 +251,20 @@ const ObjetivosAhorro: React.FC<SavingsGoalsProps> = ({ userId }) => {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.current_amount, 10)}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, 10)}
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 text-sm font-medium"
                   >
                     +€10
                   </button>
                   <button
-                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.current_amount, 50)}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, 50)}
                     className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-2 px-4 rounded-xl hover:from-blue-600 hover:to-teal-600 transition-all duration-200 text-sm font-medium"
                   >
                     +€50
                   </button>
                   <button
-                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.current_amount, -10)}
-                    disabled={objetivo.current_amount <= 0}
+                    onClick={() => manejarActualizarCantidad(objetivo.id, objetivo.currentAmount, -10)}
+                    disabled={objetivo.currentAmount <= 0}
                     className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-200 text-sm font-medium disabled:opacity-50"
                   >
                     -€10
