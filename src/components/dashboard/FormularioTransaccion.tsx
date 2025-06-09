@@ -3,21 +3,21 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface TransactionFormProps {
-  onSubmit: (description: string, amount: number, type: 'Ingreso' | 'Gasto') => Promise<void>;
-  isLoading: boolean;
+interface PropiedadesFormularioTransaccion {
+  alEnviar: (descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') => Promise<void>;
+  estaCargando: boolean;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }) => {
-  const [formData, setFormData] = useState({
-    description: '',
-    amount: '',
-    type: 'Ingreso' as 'Ingreso' | 'Gasto'
+const FormularioTransaccion: React.FC<PropiedadesFormularioTransaccion> = ({ alEnviar, estaCargando }) => {
+  const [datosFormulario, setDatosFormulario] = useState({
+    descripcion: '',
+    cantidad: '',
+    tipo: 'Ingreso' as 'Ingreso' | 'Gasto'
   });
   const { toast } = useToast();
 
-  const validateInput = () => {
-    if (!formData.description.trim()) {
+  const validarEntrada = () => {
+    if (!datosFormulario.descripcion.trim()) {
       toast({
         title: "Campo requerido",
         description: "Por favor, agrega una descripción",
@@ -26,8 +26,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
       return false;
     }
 
-    const parsedAmount = parseFloat(formData.amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    const cantidadAnalizada = parseFloat(datosFormulario.cantidad);
+    if (isNaN(cantidadAnalizada) || cantidadAnalizada <= 0) {
       toast({
         title: "Cantidad inválida",
         description: "La cantidad debe ser un número mayor que cero",
@@ -39,27 +39,27 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
     return true;
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const manejarEnvioFormulario = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateInput()) return;
+    if (!validarEntrada()) return;
 
     try {
-      await onSubmit(formData.description, parseFloat(formData.amount), formData.type);
+      await alEnviar(datosFormulario.descripcion, parseFloat(datosFormulario.cantidad), datosFormulario.tipo);
       
-      // Reset form after successful submission
-      setFormData({
-        description: '',
-        amount: '',
-        type: 'Ingreso'
+      // Reiniciar formulario después del envío exitoso
+      setDatosFormulario({
+        descripcion: '',
+        cantidad: '',
+        tipo: 'Ingreso'
       });
     } catch (error) {
-      // Error handling is done in parent component
+      // El manejo de errores se hace en el componente padre
     }
   };
 
-  const updateFormField = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const actualizarCampoFormulario = (campo: keyof typeof datosFormulario, valor: string) => {
+    setDatosFormulario(prev => ({ ...prev, [campo]: valor }));
   };
 
   return (
@@ -71,7 +71,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
         Nueva Transacción
       </h3>
       
-      <form onSubmit={handleFormSubmit} className="space-y-6">
+      <form onSubmit={manejarEnvioFormulario} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -79,8 +79,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
             </label>
             <input
               type="text"
-              value={formData.description}
-              onChange={(e) => updateFormField('description', e.target.value)}
+              value={datosFormulario.descripcion}
+              onChange={(e) => actualizarCampoFormulario('descripcion', e.target.value)}
               className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="Ej: Supermercado, Salario..."
               required
@@ -95,8 +95,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
               type="number"
               step="0.01"
               min="0.01"
-              value={formData.amount}
-              onChange={(e) => updateFormField('amount', e.target.value)}
+              value={datosFormulario.cantidad}
+              onChange={(e) => actualizarCampoFormulario('cantidad', e.target.value)}
               className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
               placeholder="0.00"
               required
@@ -108,8 +108,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
               Tipo
             </label>
             <select
-              value={formData.type}
-              onChange={(e) => updateFormField('type', e.target.value as 'Ingreso' | 'Gasto')}
+              value={datosFormulario.tipo}
+              onChange={(e) => actualizarCampoFormulario('tipo', e.target.value as 'Ingreso' | 'Gasto')}
               className="w-full px-4 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/80 backdrop-blur-sm font-light text-lg transition-all duration-200"
             >
               <option value="Ingreso">Ingreso</option>
@@ -120,14 +120,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, isLoading }
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={estaCargando}
           className="w-full md:w-auto bg-gradient-to-r from-blue-500 to-teal-500 text-white px-8 py-4 rounded-2xl hover:from-blue-600 hover:to-teal-600 transition-all duration-200 disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          {isLoading ? 'Guardando...' : 'Agregar Transacción'}
+          {estaCargando ? 'Guardando...' : 'Agregar Transacción'}
         </button>
       </form>
     </div>
   );
 };
 
-export default TransactionForm;
+export default FormularioTransaccion;

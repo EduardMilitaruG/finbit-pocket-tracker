@@ -1,42 +1,42 @@
 
-import { dataService } from './DataService';
+import { servicioDatos } from './ServicioDatos';
 
-// Legacy service that delegates to the new DataService
-// This maintains compatibility with existing code
-class LegacySupabaseService {
-  async obtenerPerfil(userId: string) {
-    return dataService.getUserProfile(userId);
+// Servicio legacy que delega al nuevo ServicioDatos
+// Esto mantiene compatibilidad con el código existente
+class ServicioSupabaseLegacy {
+  async obtenerPerfil(idUsuario: string) {
+    return servicioDatos.obtenerPerfilUsuario(idUsuario);
   }
 
-  async crearPerfil(userId: string, nombreUsuario: string) {
-    return dataService.createUserProfile(userId, nombreUsuario);
+  async crearPerfil(idUsuario: string, nombreUsuario: string) {
+    return servicioDatos.crearPerfilUsuario(idUsuario, nombreUsuario);
   }
 
-  async agregarTransaccion(userId: string, descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') {
-    return dataService.addNewTransaction(userId, descripcion, cantidad, tipo);
+  async agregarTransaccion(idUsuario: string, descripcion: string, cantidad: number, tipo: 'Ingreso' | 'Gasto') {
+    return servicioDatos.agregarNuevaTransaccion(idUsuario, descripcion, cantidad, tipo);
   }
 
-  async obtenerTransaccionesPorUsuario(userId: string) {
-    return dataService.fetchUserTransactions(userId);
+  async obtenerTransaccionesPorUsuario(idUsuario: string) {
+    return servicioDatos.obtenerTransaccionesUsuario(idUsuario);
   }
 
   async agregarObjetivoAhorro(
-    userId: string, 
+    idUsuario: string, 
     titulo: string, 
     cantidadObjetivo: number, 
     descripcion?: string, 
     fechaLimite?: number
   ) {
-    return dataService.createSavingsGoal(userId, titulo, cantidadObjetivo, descripcion, fechaLimite);
+    return servicioDatos.crearObjetivoAhorro(idUsuario, titulo, cantidadObjetivo, descripcion, fechaLimite);
   }
 
-  async obtenerObjetivosAhorroPorUsuario(userId: string) {
-    return dataService.fetchUserSavingsGoals(userId);
+  async obtenerObjetivosAhorroPorUsuario(idUsuario: string) {
+    return servicioDatos.obtenerObjetivosAhorroUsuario(idUsuario);
   }
 
   async actualizarCantidadObjetivoAhorro(idObjetivo: string, nuevaCantidad: number) {
-    return dataService.updateSavingsGoalAmount(idObjetivo, nuevaCantidad);
+    return servicioDatos.actualizarCantidadObjetivoAhorro(idObjetivo, nuevaCantidad);
   }
 }
 
-export const supabaseService = new LegacySupabaseService();
+export const servicioSupabase = new ServicioSupabaseLegacy();

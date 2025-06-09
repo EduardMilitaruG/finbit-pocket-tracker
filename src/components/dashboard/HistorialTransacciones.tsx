@@ -4,30 +4,30 @@ import { Filter, Download } from 'lucide-react';
 import { Transaction } from '../../types/User';
 import { useToast } from '@/hooks/use-toast';
 
-interface TransactionHistoryProps {
-  transactions: Transaction[];
+interface PropiedadesHistorialTransacciones {
+  transacciones: Transaction[];
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions }) => {
-  const [filterOptions, setFilterOptions] = useState({
-    type: 'Todos' as 'Todos' | 'Ingreso' | 'Gasto',
-    search: ''
+const HistorialTransacciones: React.FC<PropiedadesHistorialTransacciones> = ({ transacciones }) => {
+  const [opcionesFiltro, setOpcionesFiltro] = useState({
+    tipo: 'Todos' as 'Todos' | 'Ingreso' | 'Gasto',
+    busqueda: ''
   });
-  const [showFilters, setShowFilters] = useState(false);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const { toast } = useToast();
 
-  const applyFilters = () => {
-    return transactions.filter(transaction => {
-      const matchesType = filterOptions.type === 'Todos' || transaction.type === filterOptions.type;
-      const matchesSearch = transaction.description.toLowerCase().includes(filterOptions.search.toLowerCase());
-      return matchesType && matchesSearch;
+  const aplicarFiltros = () => {
+    return transacciones.filter(transaccion => {
+      const coincideTipo = opcionesFiltro.tipo === 'Todos' || transaccion.type === opcionesFiltro.tipo;
+      const coincideBusqueda = transaccion.description.toLowerCase().includes(opcionesFiltro.busqueda.toLowerCase());
+      return coincideTipo && coincideBusqueda;
     });
   };
 
-  const exportToCSV = () => {
-    const filteredData = applyFilters();
+  const exportarACSV = () => {
+    const datosFiltrados = aplicarFiltros();
     
-    if (filteredData.length === 0) {
+    if (datosFiltrados.length === 0) {
       toast({
         title: "No hay datos",
         description: "No hay transacciones para exportar",
@@ -36,10 +36,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
       return;
     }
 
-    const headers = ['Fecha', 'Descripción', 'Tipo', 'Cantidad'];
-    const csvData = [
-      headers.join(','),
-      ...filteredData.map(t => [
+    const encabezados = ['Fecha', 'Descripción', 'Tipo', 'Cantidad'];
+    const datosCSV = [
+      encabezados.join(','),
+      ...datosFiltrados.map(t => [
         new Date(t.date).toLocaleDateString('es-ES'),
         `"${t.description}"`,
         t.type,
@@ -47,14 +47,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
       ].join(','))
     ].join('\n');
 
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([datosCSV], { type: 'text/csv;charset=utf-8;' });
+    const enlace = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `transacciones_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    enlace.setAttribute('href', url);
+    enlace.setAttribute('download', `transacciones_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
 
     toast({
       title: "¡Exportado!",
@@ -62,28 +62,28 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
     });
   };
 
-  const updateFilter = (field: keyof typeof filterOptions, value: string) => {
-    setFilterOptions(prev => ({ ...prev, [field]: value }));
+  const actualizarFiltro = (campo: keyof typeof opcionesFiltro, valor: string) => {
+    setOpcionesFiltro(prev => ({ ...prev, [campo]: valor }));
   };
 
-  const filteredTransactions = applyFilters();
+  const transaccionesFiltradas = aplicarFiltros();
 
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-2xl font-light text-gray-800">
-          Historial <span className="text-lg text-gray-500">({filteredTransactions.length})</span>
+          Historial <span className="text-lg text-gray-500">({transaccionesFiltradas.length})</span>
         </h3>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
             className="flex items-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-200 font-medium"
           >
             <Filter className="w-4 h-4" />
             Filtros
           </button>
           <button
-            onClick={exportToCSV}
+            onClick={exportarACSV}
             className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 font-medium"
           >
             <Download className="w-4 h-4" />
@@ -92,7 +92,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
         </div>
       </div>
 
-      {showFilters && (
+      {mostrarFiltros && (
         <div className="mb-6 p-4 bg-gray-50/50 rounded-2xl border border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -100,8 +100,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
                 Filtrar por tipo
               </label>
               <select
-                value={filterOptions.type}
-                onChange={(e) => updateFilter('type', e.target.value as 'Todos' | 'Ingreso' | 'Gasto')}
+                value={opcionesFiltro.tipo}
+                onChange={(e) => actualizarFiltro('tipo', e.target.value as 'Todos' | 'Ingreso' | 'Gasto')}
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
               >
                 <option value="Todos">Todos</option>
@@ -115,8 +115,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
               </label>
               <input
                 type="text"
-                value={filterOptions.search}
-                onChange={(e) => updateFilter('search', e.target.value)}
+                value={opcionesFiltro.busqueda}
+                onChange={(e) => actualizarFiltro('busqueda', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                 placeholder="Buscar transacciones..."
               />
@@ -125,10 +125,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
         </div>
       )}
       
-      {filteredTransactions.length === 0 ? (
+      {transaccionesFiltradas.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg font-light">
-            {transactions.length === 0 
+            {transacciones.length === 0 
               ? "Aún no hay transacciones. ¡Agrega la primera!"
               : "No hay transacciones que coincidan con los filtros."
             }
@@ -146,27 +146,27 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
               </tr>
             </thead>
             <tbody>
-              {filteredTransactions
+              {transaccionesFiltradas
                 .sort((a, b) => b.date - a.date)
-                .map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
+                .map((transaccion) => (
+                  <tr key={transaccion.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors duration-200">
                     <td className="py-4 px-4 text-sm text-gray-600 font-light">
-                      {new Date(transaction.date).toLocaleDateString('es-ES')}
+                      {new Date(transaccion.date).toLocaleDateString('es-ES')}
                     </td>
-                    <td className="py-4 px-4 text-sm font-light">{transaction.description}</td>
+                    <td className="py-4 px-4 text-sm font-light">{transaccion.description}</td>
                     <td className="py-4 px-4 text-sm">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        transaction.type === 'Ingreso' 
+                        transaccion.type === 'Ingreso' 
                           ? 'bg-green-100/80 text-green-700 border border-green-200' 
                           : 'bg-red-100/80 text-red-700 border border-red-200'
                       }`}>
-                        {transaction.type}
+                        {transaccion.type}
                       </span>
                     </td>
                     <td className={`py-4 px-4 text-sm text-right font-medium ${
-                      transaction.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'
+                      transaccion.type === 'Ingreso' ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {transaction.type === 'Ingreso' ? '+' : '-'}€{transaction.amount.toFixed(2)}
+                      {transaccion.type === 'Ingreso' ? '+' : '-'}€{transaccion.amount.toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -178,4 +178,4 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
   );
 };
 
-export default TransactionHistory;
+export default HistorialTransacciones;
