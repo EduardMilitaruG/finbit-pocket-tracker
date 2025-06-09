@@ -109,11 +109,11 @@ const FormularioAuth: React.FC = () => {
     <div className="max-w-md mx-auto">
       {/* Encabezado de la App */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl font-light text-white mb-2 drop-shadow-lg">
+        <h1 className="text-5xl font-light text-gray-800 mb-2 drop-shadow-lg">
           <span className="font-extralight">Fin</span>
           <span className="font-normal">Bit</span>
         </h1>
-        <p className="text-white/90 text-lg font-light drop-shadow-md">
+        <p className="text-gray-700 text-lg font-light drop-shadow-md">
           Tu Gestor Financiero Personal
         </p>
       </div>
