@@ -173,9 +173,6 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
             {/* Gráfico de Balance Mensual */}
             <GraficoBalanceMensual transacciones={transaccionesUsuario} />
             
-            {/* Widget de Monedas */}
-            <WidgetMonedas />
-            
             <HistorialTransacciones transacciones={transaccionesUsuario} />
           </div>
         );
@@ -184,7 +181,7 @@ const Tablero: React.FC<PropiedadesTablero> = ({ usuario, alCerrarSesion }) => {
       case 'banco':
         return <ConexionBancaria userId={usuario.id} onTransaccionesImportadas={manejarTransaccionesImportadas} />;
       case 'mercados':
-        return <Mercados />;
+        return <WidgetMonedas />;
       case 'perfil':
         return <Perfil user={usuario} onLogout={alCerrarSesion} />;
       default:
