@@ -44,7 +44,7 @@ const ClerkAuth: React.FC = () => {
             <UserButton />
           </div>
           <h2 className="text-2xl font-light text-gray-800 mb-2">¡Bienvenido!</h2>
-          <p className="text-gray-600 font-light">Autenticado correctamente</p>
+          <p className="text-gray-600 font-light">Sesión iniciada correctamente</p>
         </div>
       </SignedIn>
     </div>
