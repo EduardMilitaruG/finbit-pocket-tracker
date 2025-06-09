@@ -68,6 +68,37 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
+  const manejarTransaccionesImportadas = async (transaccionesImportadas: any[]) => {
+    if (!user?.id) return;
+
+    try {
+      // Agregar cada transacción importada a la base de datos
+      for (const transaccion of transaccionesImportadas) {
+        await supabaseService.agregarTransaccion(
+          user.id,
+          transaccion.descripcion,
+          transaccion.cantidad,
+          transaccion.tipo
+        );
+      }
+
+      toast({
+        title: "¡Éxito!",
+        description: `Se importaron ${transaccionesImportadas.length} transacciones correctamente`
+      });
+
+      // Recargar las transacciones para mostrar las nuevas
+      await cargarTransacciones();
+    } catch (error) {
+      console.error('Error importando transacciones:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron importar todas las transacciones",
+        variant: "destructive"
+      });
+    }
+  };
+
   const validarFormulario = () => {
     if (!descripcion.trim()) {
       toast({
@@ -504,7 +535,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       ) : pestanaActiva === 'ahorros' ? (
         user?.id ? <SavingsGoals userId={user.id} /> : null
       ) : pestanaActiva === 'banco' ? (
-        <ConexionBancaria />
+        <ConexionBancaria userId={user.id} onTransaccionesImportadas={manejarTransaccionesImportadas} />
       ) : pestanaActiva === 'mercados' ? (
         <Markets />
       ) : (

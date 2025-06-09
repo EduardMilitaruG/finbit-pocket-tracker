@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { CreditCard, Building2, AlertCircle } from 'lucide-react';
 
 interface ConexionBancariaProps {
-  userId: number;
+  userId: string;
   onTransaccionesImportadas: (transacciones: any[]) => void;
 }
 
